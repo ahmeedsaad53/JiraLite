@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Student Management API",
+    "version": "v1"
+  },
+  "paths": { },
+  "components": {
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Paste the JWT token only. Swagger adds the Bearer prefix automatically.",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": [ ]
+    }
+  ]
+}

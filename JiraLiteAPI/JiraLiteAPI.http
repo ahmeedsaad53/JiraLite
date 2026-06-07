@@ -1,0 +1,6 @@
+@JiraLiteAPI_HostAddress = http://localhost:5223
+
+GET {{JiraLiteAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
