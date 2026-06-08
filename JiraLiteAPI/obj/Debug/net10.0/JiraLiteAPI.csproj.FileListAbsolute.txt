@@ -160,3 +160,4 @@ C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\refint\JiraLit
 C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\JiraLiteAPI.pdb
 C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\JiraLiteAPI.genruntimeconfig.cache
 C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\ref\JiraLiteAPI.dll
+C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

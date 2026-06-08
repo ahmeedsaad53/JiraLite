@@ -15,7 +15,8 @@ namespace WebApi
 {
     public class Program
     {
-        public static async Task Main(string[] args)
+     
+     public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -156,12 +157,27 @@ namespace WebApi
 
             app.UseAuthorization();
             app.MapControllers();
-           /* using (var scope = app.Services.CreateScope())
+           using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                await DbInitializer.SeedRoles(services);
-            }*/
+                await SeedRoles(services);
+            }
             app.Run();
         }
+      static async Task SeedRoles(IServiceProvider serviceProvider)
+        {
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+            string[] roles = { "Admin", "User" };
+
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+        }
     }
+
 }
