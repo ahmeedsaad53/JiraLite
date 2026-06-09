@@ -204,8 +204,8 @@ namespace JiraLiteAPI.Migrations
                     b.Property<DateOnly>("CreatedOn")
                         .HasColumnType("date");
 
-                    b.Property<DateTime>("DeadLine")
-                        .HasColumnType("datetime2");
+                    b.Property<DateOnly>("DeadLine")
+                        .HasColumnType("date");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -465,7 +465,7 @@ namespace JiraLiteAPI.Migrations
                     b.HasOne("JiraLiteAPI.Data.ApplicationUser", "User")
                         .WithMany("ActivityLogs")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Task");
@@ -495,7 +495,7 @@ namespace JiraLiteAPI.Migrations
                     b.HasOne("JiraLiteAPI.Data.ApplicationUser", "User")
                         .WithMany("Comments")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Task");
@@ -533,7 +533,7 @@ namespace JiraLiteAPI.Migrations
                     b.HasOne("JiraLiteAPI.Data.ApplicationUser", "User")
                         .WithMany("TaskRequests")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -545,7 +545,8 @@ namespace JiraLiteAPI.Migrations
                 {
                     b.HasOne("JiraLiteAPI.Data.ApplicationUser", "AssignedUser")
                         .WithMany("Tasks")
-                        .HasForeignKey("AssignedUserId");
+                        .HasForeignKey("AssignedUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("JiraLiteAPI.Data.Project", "Project")
                         .WithMany("Tasks")

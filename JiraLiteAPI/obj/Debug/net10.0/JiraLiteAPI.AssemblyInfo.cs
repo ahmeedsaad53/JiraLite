@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JiraLiteAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cbf2e1666f93d3b2ad55699c484d5e81cef35900")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+07e5d0a09879dc029a0cf911056f87130cb24dab")]
 [assembly: System.Reflection.AssemblyProductAttribute("JiraLiteAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JiraLiteAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

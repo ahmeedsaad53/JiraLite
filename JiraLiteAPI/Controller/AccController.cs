@@ -1,5 +1,6 @@
 ﻿using JiraLiteAPI.Data;
 using JiraLiteAPI.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -41,7 +42,6 @@ namespace JiraLiteAPI.Controller
                 IdentityResult result = await _userManager.CreateAsync(user, registerDTO.Password);
                 if (!result.Succeeded) return BadRequest(result.Errors);
                 await _userManager.AddToRoleAsync(user, "User");
-                await _Context.SaveChangesAsync();
                 return Ok("User created successfully");
             }
             return BadRequest("Invalid request");
@@ -88,15 +88,16 @@ namespace JiraLiteAPI.Controller
             //https://localhost:7068/swagger/index.html
         }
         [HttpDelete]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult>DeleteUser(string UserId)
         {
             var user = await _Context.Users.FirstOrDefaultAsync(x => x.Id == UserId);
             if (user == null) return BadRequest("User not Found");
              _Context.Users.Remove(user);
-            await _Context.SaveChangesAsync();
+            await _userManager.DeleteAsync(user);
             return Ok("User Deleted");
         }
-        [HttpGet("Get All Users")]
+        [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllUser()
         {
             var Users=await _Context.Users.Select(u => new
@@ -111,6 +112,8 @@ namespace JiraLiteAPI.Controller
 
         }
         [HttpGet("{id:alpha}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult>GetById(string id)
         {
             var user= await _Context.Users.FirstOrDefaultAsync(u => u.Id == id);

@@ -34,7 +34,7 @@
   {
     "ContainingType": "JiraLiteAPI.Controller.AccController",
     "Method": "GetAllUser",
-    "RelativePath": "api/Acc/Get All Users",
+    "RelativePath": "api/Acc/GetAll",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -68,6 +68,127 @@
       {
         "Name": "registerDTO",
         "Type": "JiraLiteAPI.DTO.RegisterDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "AddNewProject",
+    "RelativePath": "api/Project",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "projectDTO",
+        "Type": "JiraLiteAPI.DTO.ProjectDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "GetAllProjects",
+    "RelativePath": "api/Project",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "GetProjectById",
+    "RelativePath": "api/Project/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "EditProjectStatus",
+    "RelativePath": "api/Project/{id}",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "updateProjectProgressDTO",
+        "Type": "JiraLiteAPI.DTO.UpdateProjectProgressDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "EditProject",
+    "RelativePath": "api/Project/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "editProjectDTO",
+        "Type": "JiraLiteAPI.DTO.EditProjectDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "DeleteProject",
+    "RelativePath": "api/Project/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectUserController",
+    "Method": "AddUser",
+    "RelativePath": "api/ProjectUser/AddUser{userId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "JiraLiteAPI.DTO.AddUserToProjectDTO",
+        "IsRequired": true
+      },
+      {
+        "Name": "userId",
+        "Type": "",
         "IsRequired": true
       }
     ],

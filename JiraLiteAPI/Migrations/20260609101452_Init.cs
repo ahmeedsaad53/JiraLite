@@ -62,7 +62,7 @@ namespace JiraLiteAPI.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedOn = table.Column<DateOnly>(type: "date", nullable: false),
-                    DeadLine = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DeadLine = table.Column<DateOnly>(type: "date", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -225,7 +225,8 @@ namespace JiraLiteAPI.Migrations
                         name: "FK_Tasks_AspNetUsers_AssignedUserId",
                         column: x => x.AssignedUserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Tasks_Projects_ProjectId",
                         column: x => x.ProjectId,
@@ -253,7 +254,7 @@ namespace JiraLiteAPI.Migrations
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ActivityLogs_Tasks_TaskId",
                         column: x => x.TaskId,
@@ -304,7 +305,7 @@ namespace JiraLiteAPI.Migrations
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Comments_Tasks_TaskId",
                         column: x => x.TaskId,
@@ -331,7 +332,7 @@ namespace JiraLiteAPI.Migrations
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_TaskRequests_Tasks_TaskId",
                         column: x => x.TaskId,

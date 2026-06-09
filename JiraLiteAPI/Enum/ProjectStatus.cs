@@ -5,6 +5,6 @@
         NotStarted,
         InProgress,
         Completed,
-         Cancelled
+        Cancelled
     }
 }
