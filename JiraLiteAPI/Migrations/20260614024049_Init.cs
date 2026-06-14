@@ -61,7 +61,7 @@ namespace JiraLiteAPI.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedOn = table.Column<DateOnly>(type: "date", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DeadLine = table.Column<DateOnly>(type: "date", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false)
                 },
@@ -216,7 +216,7 @@ namespace JiraLiteAPI.Migrations
                     Deadline = table.Column<DateOnly>(type: "date", nullable: false),
                     AssignedUserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedOn = table.Column<DateOnly>(type: "date", nullable: false)
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -244,6 +244,7 @@ namespace JiraLiteAPI.Migrations
                     Action = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     TaskId = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateOnly>(type: "date", nullable: false)
                 },
                 constraints: table =>
@@ -272,12 +273,18 @@ namespace JiraLiteAPI.Migrations
                     TaskId = table.Column<int>(type: "int", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UploadedByUserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UploadAt = table.Column<DateOnly>(type: "date", nullable: false)
+                    UploadedByUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UploadAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Attachments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Attachments_AspNetUsers_UploadedByUserId",
+                        column: x => x.UploadedByUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Attachments_Tasks_TaskId",
                         column: x => x.TaskId,
@@ -295,7 +302,7 @@ namespace JiraLiteAPI.Migrations
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TaskId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CreatedAt = table.Column<DateOnly>(type: "date", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -322,7 +329,8 @@ namespace JiraLiteAPI.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     TaskId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -394,6 +402,11 @@ namespace JiraLiteAPI.Migrations
                 name: "IX_Attachments_TaskId",
                 table: "Attachments",
                 column: "TaskId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Attachments_UploadedByUserId",
+                table: "Attachments",
+                column: "UploadedByUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_TaskId",

@@ -39,7 +39,7 @@ namespace JiraLiteAPI.Controller
                 CreatedBy = userId,
                 DeadLine = projectDTO.DeadLine,
                 Status = projectDTO.Status,
-                CreatedOn = DateOnly.FromDateTime(DateTime.Now)
+                CreatedOn = DateTime.Now
             };
             _Context.Projects.Add(NewProject);
             await _Context.SaveChangesAsync();
@@ -162,7 +162,7 @@ namespace JiraLiteAPI.Controller
         }
 
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult>DeleteProject(int id)
         {
             var Project = await _Context.Projects.FirstOrDefaultAsync(p=>p.Id == id);
@@ -173,7 +173,7 @@ namespace JiraLiteAPI.Controller
             {
                 message = "Project deleted successfully",
                 projectId = id
-            });
+            });  
         }
 
 

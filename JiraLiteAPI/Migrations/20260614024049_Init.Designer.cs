@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace JiraLiteAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260609101452_Init")]
+    [Migration("20260614024049_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -38,6 +38,10 @@ namespace JiraLiteAPI.Migrations
 
                     b.Property<DateOnly>("CreatedAt")
                         .HasColumnType("date");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TaskId")
                         .HasColumnType("int");
@@ -147,16 +151,18 @@ namespace JiraLiteAPI.Migrations
                     b.Property<int>("TaskId")
                         .HasColumnType("int");
 
-                    b.Property<DateOnly>("UploadAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("UploadAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UploadedByUserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("TaskId");
+
+                    b.HasIndex("UploadedByUserId");
 
                     b.ToTable("Attachments");
                 });
@@ -173,8 +179,8 @@ namespace JiraLiteAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly>("CreatedAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("TaskId")
                         .HasColumnType("int");
@@ -204,8 +210,8 @@ namespace JiraLiteAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly>("CreatedOn")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateOnly>("DeadLine")
                         .HasColumnType("date");
@@ -258,6 +264,9 @@ namespace JiraLiteAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -292,8 +301,8 @@ namespace JiraLiteAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly>("CreatedOn")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateOnly>("Deadline")
                         .HasColumnType("date");
@@ -484,7 +493,15 @@ namespace JiraLiteAPI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("JiraLiteAPI.Data.ApplicationUser", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Task");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("JiraLiteAPI.Data.Comment", b =>

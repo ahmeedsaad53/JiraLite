@@ -12,13 +12,13 @@ namespace JiraLiteAPI.Data
         public Priority priority { get; set; }
         public DateOnly Deadline { get; set; }
         public string? AssignedUserId { get; set; }
-        public string CreatedBy { get; set; }
-        public DateOnly CreatedOn { get; set; }= DateOnly.FromDateTime(DateTime.Now);
+        public string CreatedBy { get; set; }  
+        public DateTime CreatedOn { get; set; }= DateTime.Now;
         public Project Project { get; set; }
         public ApplicationUser AssignedUser { get; set; }
-        public List<Comment> Comments { get; set; }
-        public List<ActivityLog> ActivityLogs { get; set; }
-        public List<Attachment> Attachments { get; set; }
+        public ICollection<Comment> Comments { get; set; }
+        public ICollection<Attachment> Attachments { get; set; }
+        public ICollection<ActivityLog> ActivityLogs { get; set; }
         public List<TaskRequest>taskRequests { get; set; }
 
 

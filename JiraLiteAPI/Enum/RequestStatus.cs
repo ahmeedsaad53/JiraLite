@@ -6,4 +6,10 @@
         accepted,
         rejected
     }
+    public enum ApproveRequests
+    {
+
+        Accepted,
+        Rejected
+    }
 }

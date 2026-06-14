@@ -8,7 +8,7 @@ namespace JiraLiteAPI.Data
         public string Name { get; set; }
         public string Description { get; set; }
         public string CreatedBy { get; set; }
-        public DateOnly CreatedOn { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public DateTime CreatedOn { get; set; } = DateTime.Now;
         public DateOnly DeadLine { get; set; } = DateOnly.FromDateTime(DateTime.Now);
         public ProjectStatus Status { get; set; }
         public List<ProjectUser> Users { get; set; }

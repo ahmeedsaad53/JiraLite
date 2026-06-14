@@ -2,10 +2,14 @@
 {
     public enum ActivityType
     {
-        Created,
-        Assigned,
-        Updated,
-        Deleted,
-        CommentAdded
+
+        CreatedTask,
+        UpdatedStatus, 
+        AssignedTask,
+        CommentAdded,
+        AttachmentAdded,
+        RequestApproved,
+        RequestRejected
+
     }
 }

@@ -6,8 +6,11 @@
         public int TaskId { get; set; }
         public string FileName { get; set; }
         public string FilePath { get; set; }
+
         public string UploadedByUserId { get; set; }
-        public DateOnly UploadAt { get; set; }
+
+        public ApplicationUser UploadedByUser { get; set; }
+        public DateTime UploadAt { get; set; }= DateTime.Now;
         public WorkTask Task { get; set; }
 
 
