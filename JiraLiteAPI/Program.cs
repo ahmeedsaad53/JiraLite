@@ -65,7 +65,7 @@ namespace WebApi
                         return Task.CompletedTask;
                     }
                 };
-
+                var key = builder.Configuration["JwtSettings:Key"];
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = false,
@@ -77,7 +77,7 @@ namespace WebApi
 
 
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes("sgdsgd648d9f*/w43U4354t69ts8e22365fh")
+                        Encoding.UTF8.GetBytes(key)
                     ),
 
                     RoleClaimType = ClaimTypes.Role
@@ -161,6 +161,9 @@ namespace WebApi
             {
                 var services = scope.ServiceProvider;
                 await SeedRoles(services);
+
+                await SeedAdmin(services);
+
             }
             app.Run();
         }
@@ -178,6 +181,50 @@ namespace WebApi
                 }
             }
         }
+
+        static async Task SeedAdmin(IServiceProvider serviceProvider)
+        {
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            var config = serviceProvider.GetRequiredService<IConfiguration>();
+
+            string adminEmail = config["AdminSettings:Email"];
+            string adminPassword = config["AdminSettings:Password"];
+               
+            var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+            if (adminUser == null)
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FName = "Admin", 
+                    LName = "System"
+
+                };
+
+                var result = await userManager.CreateAsync(user, adminPassword);
+
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, "Admin");
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
 }

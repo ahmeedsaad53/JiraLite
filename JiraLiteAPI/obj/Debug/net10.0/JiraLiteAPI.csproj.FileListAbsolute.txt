@@ -162,3 +162,4 @@ C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\JiraLiteAPI.ge
 C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\ref\JiraLiteAPI.dll
 C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\JiraLiteAPI.sourcelink.json
 C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\bin\Debug\net10.0\JiraLiteAPI.staticwebassets.runtime.json
+C:\Users\berlin\Desktop\JiraLiteAPI\JiraLiteAPI\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

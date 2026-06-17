@@ -9,7 +9,6 @@ namespace JiraLiteAPI.DTO
         public int ProjectId { get; set; }
         public Priority priority { get; set; }
         public DateOnly Deadline { get; set; }
-        public string CreatedBy { get; set; }
         public bool IsHard { get; set; }
         public string? AssignedUserId { get; set; }
 

@@ -21,27 +21,45 @@ namespace JiraLiteAPI.Controller
             _userManager = userManager;
             _Context = context;
         }
-        [HttpPost("AddUser{userId:int}")]
-        [Authorize(Roles = ("Admin"))]
-        public async Task<IActionResult> AddUser(AddUserToProjectDTO dto)
+        [HttpPost("AddUser/{userId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddUser(string userId, [FromBody] AddUserToProjectDTO dto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var user = await _userManager.FindByIdAsync(dto.UserId);
-            if (user == null) return NotFound("User not found");
-            var project = await _Context.Projects.FirstOrDefaultAsync(p => p.Id == dto.ProjectId);
-            if (project == null) return BadRequest();
-            var existingUserProject = await _Context.ProjectUsers.AnyAsync(pu => pu.UserId == dto.UserId && pu.ProjectId == dto.ProjectId);
-            if (existingUserProject) return BadRequest("User is already assigned to this project");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+                return NotFound("User not found");
+
+            var project = await _Context.Projects
+                .FirstOrDefaultAsync(p => p.Id == dto.ProjectId);
+
+            if (project == null)
+                return NotFound("Project not found");
+
+            var exists = await _Context.ProjectUsers
+                .AnyAsync(pu => pu.UserId == userId && pu.ProjectId == dto.ProjectId);
+
+            if (exists)
+                return BadRequest("User already in project");
+
             var userProject = new ProjectUser
             {
-                UserId = dto.UserId,
+                UserId = userId, 
                 ProjectId = dto.ProjectId
             };
+
             _Context.ProjectUsers.Add(userProject);
             await _Context.SaveChangesAsync();
-            return Ok("User added to project successfully");
-        }
 
+            return Ok(new
+            {
+                message = "User added to project successfully",
+                userId = userId,
+                projectId = dto.ProjectId
+            });
+        }
         [HttpDelete("remove-user/{projectId:int}/{userId}")]
         [Authorize (Roles =("Admin"))]
         public async Task<IActionResult> DeleteUserFromProject( int projectId,string userId)

@@ -4,12 +4,19 @@
     {
 
         CreatedTask,
+        DeletedTask,
         UpdatedStatus, 
         AssignedTask,
         CommentAdded,
+        CommentUpdated,
+        CommentDeleted,
         AttachmentAdded,
+        RequestCreated,
         RequestApproved,
-        RequestRejected
+        RequestRejected,
+        RequestDeleted,
+        UploadFile,
+        DeletedFile
 
     }
 }

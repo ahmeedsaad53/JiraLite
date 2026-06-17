@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -18,17 +19,27 @@ namespace JiraLiteAPI.Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly AppDbContext _Context;
-        public AccController(UserManager<ApplicationUser> userManager, AppDbContext context)
+        private readonly RoleManager<IdentityRole> _roleManager;
+
+        private readonly IConfiguration _config;
+
+
+        public AccController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, AppDbContext context, IConfiguration config)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _Context = context;
+            _config = config; 
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDTO registerDTO)
         {
-            if (registerDTO == null) return BadRequest("Invalid request");
-            if (registerDTO.Password != registerDTO.ConfirmPassword) return BadRequest("Invalid request");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+  
+
             if (ModelState.IsValid)
             {
                 ApplicationUser user = new ApplicationUser()
@@ -62,7 +73,12 @@ namespace JiraLiteAPI.Controller
                 new Claim(ClaimTypes.Name, user.FName + " " + user.LName),
                 new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())
             };
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("sgdsgd648d9f*/w43U4354t69ts8e22365fh"));
+
+            var key = _config["JwtSettings:Key"];
+            if (string.IsNullOrEmpty(key))
+                throw new Exception("JWT key is missing");
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var userRoles = await _userManager.GetRolesAsync(user);
             foreach (var role in userRoles)
@@ -73,7 +89,7 @@ namespace JiraLiteAPI.Controller
                issuer: "http://localhost:5009",
                audience: "http://localhost:5009",
                 claims: claims,
-                expires: DateTime.Now.AddDays(7),
+                expires: DateTime.UtcNow.AddDays(7),
                 signingCredentials: signingCredentials
 
                 );
@@ -82,22 +98,26 @@ namespace JiraLiteAPI.Controller
                 token = new JwtSecurityTokenHandler()
                    .WriteToken(token),
 
-                expiration = DateTime.Now.AddDays(7)
+                expiration = DateTime.UtcNow.AddDays(7)
             });
 
-            //https://localhost:7068/swagger/index.html
         }
-        [HttpDelete]
+        [HttpDelete("{userId}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult>DeleteUser(string UserId)
+        public async Task<IActionResult>DeleteUser(string userId)
         {
-            var user = await _Context.Users.FirstOrDefaultAsync(x => x.Id == UserId);
+            var user = await _Context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null) return BadRequest("User not Found");
-             _Context.Users.Remove(user);
             await _userManager.DeleteAsync(user);
-            return Ok("User Deleted");
+
+            return Ok(new
+            {
+                message = "User deleted successfully",
+                userId = userId
+            });
         }
         [HttpGet("GetAll")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllUser()
         {
             var Users=await _Context.Users.Select(u => new
@@ -109,9 +129,9 @@ namespace JiraLiteAPI.Controller
 
             }).ToListAsync();
             return Ok(Users);
-
+               
         }
-        [HttpGet("{id:alpha}")]
+        [HttpGet("{id}")]
         [Authorize(Roles = "Admin")]
 
         public async Task<IActionResult>GetById(string id)
@@ -126,7 +146,28 @@ namespace JiraLiteAPI.Controller
                 user.Id
             });
         }
+        [HttpPost("assign-role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AssignRole(AssignRoleDTO dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId);
 
+            if (user == null)
+                return NotFound("User not found");
 
+            if (!await _roleManager.RoleExistsAsync(dto.Role))
+                return BadRequest("Role does not exist");
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var result = await _userManager.AddToRoleAsync(user, dto.Role);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok("Role assigned successfully");
         }
+
+    }
     }

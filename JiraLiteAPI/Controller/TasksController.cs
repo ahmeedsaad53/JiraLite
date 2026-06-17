@@ -84,8 +84,17 @@ namespace JiraLiteAPI.Controller
                 priority = taskDTO.priority,
                 AssignedUserId = assignedUserId
             };
-
             _Context.Tasks.Add(newTask);
+            await _Context.SaveChangesAsync();
+
+            _Context.ActivityLogs.Add(new ActivityLog
+            {
+                TaskId = newTask.Id,
+                UserId = userId,
+                Action = ActivityType.CreatedTask,
+                Description = $"User created task '{newTask.Title}' in project {taskDTO.ProjectId}",
+                CreatedAt = DateTime.UtcNow
+            });
             await _Context.SaveChangesAsync();
 
             return Ok(new
@@ -211,11 +220,34 @@ namespace JiraLiteAPI.Controller
             if (task.Status == TasksStatus.Done)
                 return BadRequest("Task already completed");
 
-            if (task.Status == TasksStatus.ToDo) task.Status = TasksStatus.InProgress;
+            if (task.Status == TasksStatus.ToDo)
+            {
+                task.Status = TasksStatus.InProgress;
+                await _Context.SaveChangesAsync();
+                _Context.ActivityLogs.Add(new ActivityLog
+                {
+                    TaskId = task.Id,
+                    UserId = userId,
+                    Action = ActivityType.UpdatedStatus,
+                    Description = $"User Edited the Status To Task{task.Title} From ToDo To InProgress ",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            if (task.Status == TasksStatus.InProgress)
+            {
+                task.Status = TasksStatus.Done;
+                await _Context.SaveChangesAsync();
+                _Context.ActivityLogs.Add(new ActivityLog
+                {
+                    TaskId = task.Id,
+                    UserId = userId,
+                    Action = ActivityType.UpdatedStatus,
+                    Description = $"User Edited the Status To Task{task.Title} From InProgress To Done ",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _Context.SaveChangesAsync();
 
-            if (task.Status == TasksStatus.InProgress) task.Status = TasksStatus.Done;
-
-            await _Context.SaveChangesAsync();
+            }
 
 
             return Ok(new
@@ -230,20 +262,40 @@ namespace JiraLiteAPI.Controller
         //delete task
 
         [HttpDelete("{taskId:int}")]
-        [Authorize(Roles =("Admin"))]
-        public async Task<IActionResult>DeleteTaskById(int taskId)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteTask(int taskId)
         {
-            var Task=await _Context.Tasks.FirstOrDefaultAsync(t=>t.Id==taskId);
-            if(Task == null) return NotFound();
-            _Context.Tasks.Remove(Task);
-            await _Context.SaveChangesAsync();
-            return Ok(new
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+                return Unauthorized();
+
+            var task = await _Context.Tasks
+                .FirstOrDefaultAsync(t => t.Id == taskId);
+
+            if (task == null)
+                return NotFound();
+
+            var taskTitle = task.Title;
+            var taskIdValue = task.Id;
+
+            _Context.Tasks.Remove(task);
+
+            _Context.ActivityLogs.Add(new ActivityLog
             {
-                message = "Project deleted successfully",
-                TaskId = taskId
+                TaskId = taskIdValue,
+                UserId = userId,
+                Action = ActivityType.DeletedTask,
+                Description = $"User deleted task '{taskTitle}'",
+                CreatedAt = DateTime.UtcNow
             });
 
+            await _Context.SaveChangesAsync();
 
+            return Ok(new
+            {
+                message = "Task deleted successfully",
+                taskId = taskId
+            });
         }
 
 
@@ -284,9 +336,9 @@ namespace JiraLiteAPI.Controller
 
         //get the all task for Creator
 
-        [HttpGet("TaskCreator{CreatedBy}")]
+        [HttpGet("TaskCreator/{createdBy}")]
         [Authorize]
-        public async Task<IActionResult> GetTaskCreator(string CreatedByWho)
+        public async Task<IActionResult> GetTaskCreator(string createdBy)
         {
             var Userid = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (Userid == null) return Unauthorized();
@@ -295,7 +347,7 @@ namespace JiraLiteAPI.Controller
                 var isMember = await _Context.ProjectUsers.AnyAsync(p => p.UserId == Userid);
                 if (!isMember) return Forbid();
             }
-            var UserTasks = await _Context.Tasks.Where(t => t.CreatedBy == CreatedByWho).Select(t => new
+            var UserTasks = await _Context.Tasks.Where(t => t.CreatedBy == createdBy).Select(t => new
             {
                 t.Id,
                 t.Title,

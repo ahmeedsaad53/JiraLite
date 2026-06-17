@@ -58,6 +58,15 @@ namespace JiraLiteAPI.Controller
                 UserId = userId
             };
             await _Context.Comments.AddAsync(comment);
+            _Context.ActivityLogs.Add(new ActivityLog
+            {
+                TaskId = comment.TaskId,
+                UserId = userId,
+                Action = ActivityType.CommentAdded,
+                Description = $"User added comment on task {task.Title}",
+                CreatedAt = DateTime.UtcNow
+            });
+
             await _Context.SaveChangesAsync();
 
 
@@ -74,17 +83,21 @@ namespace JiraLiteAPI.Controller
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
                 return Unauthorized();
-            var task = await _Context.Tasks
-               .FirstOrDefaultAsync(t => t.Id == taskId);
-            if (task == null)
-                return NotFound("Task not found");
-            if (!User.IsInRole("Admin"))
+            if (taskId.HasValue)
             {
-                var isMember = await _Context.ProjectUsers
-                    .AnyAsync(pu => pu.ProjectId == task.ProjectId && pu.UserId == userId);
+                var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
 
-                if (!isMember)
-                    return Forbid();
+                if (task == null)
+                    return NotFound("Task not found");
+
+                if (!User.IsInRole("Admin"))
+                {
+                    var isMember = await _Context.ProjectUsers
+                        .AnyAsync(p => p.ProjectId == task.ProjectId && p.UserId == userId);
+
+                    if (!isMember)
+                        return Forbid();
+                }
             }
 
             if (page < 1) page = 1;
@@ -142,21 +155,36 @@ namespace JiraLiteAPI.Controller
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId == null)
                 return Unauthorized();
-    
+            var comment = await _Context.Comments
+               .Include(c => c.Task)
+               .FirstOrDefaultAsync(t => t.Id == CommentId);
+            if (comment == null) return NotFound();
+
             if (!User.IsInRole("Admin"))
             {
                 var isMember = await _Context.ProjectUsers
-                    .AnyAsync(pu=> pu.UserId == userId);
+                    .AnyAsync(pu=> pu.UserId == userId&& pu.ProjectId==comment.Task.ProjectId);
 
                 if (!isMember)
                     return Forbid();
             }
-            var comment = await _Context.Comments.FirstOrDefaultAsync(t => t.Id == CommentId);
-            if (comment == null) return NotFound();
+           
             if (!User.IsInRole("Admin") && comment.UserId != userId)
                 return Forbid();
+            var CommentVaule = comment.TaskId;
+            var CommentContent= comment.Content;
             _Context.Comments.Remove(comment);
+
+            _Context.ActivityLogs.Add(new ActivityLog
+            {
+                TaskId = CommentVaule,
+                UserId = userId,
+                Action = ActivityType.CommentDeleted,
+                Description = $"User deleted comment: {CommentContent}",
+                CreatedAt = DateTime.UtcNow
+            });
             await _Context.SaveChangesAsync();
+
             return Ok(new
             {
                 message = "Comment deleted successfully",
@@ -221,7 +249,18 @@ namespace JiraLiteAPI.Controller
                 return Forbid();
 
             comment.Content = dto.Content;
+
+            _Context.ActivityLogs.Add(new ActivityLog
+            {
+                TaskId = comment.TaskId,
+                UserId = userId,
+                Action = ActivityType.CommentUpdated,
+                Description = $"User Edited the  comment Id{comment.Id} from task{comment.TaskId} ",
+                CreatedAt = DateTime.UtcNow
+            });
             await _Context.SaveChangesAsync();
+
+
             return Ok(new
             {
                 message = "Comment Edited  successfully",

@@ -1,4 +1,5 @@
-﻿using JiraLiteAPI.Data;
+﻿using Azure.Core;
+using JiraLiteAPI.Data;
 using JiraLiteAPI.DTO;
 using JiraLiteAPI.Enum;
 using Microsoft.AspNetCore.Authorization;
@@ -39,9 +40,10 @@ namespace JiraLiteAPI.Controller
                 .AnyAsync(p => p.UserId == userId&&p.ProjectId==task.ProjectId);
             if (!isMember) return Forbid();
             
-            if (task.AssignedUserId != null) return BadRequest("There is a User Already Taked This Task ");
+            if (task.AssignedUserId != null) return BadRequest("Task is already assigned to another user ");
             if(task.Status!= TasksStatus.ToDo) return BadRequest("Task is not available for request");
-            var CheakOldRequest=await _Context.TaskRequests.Where(p=>p.TaskId==taskRequestDTO.TaskId&&p.UserId==userId).FirstOrDefaultAsync();
+            var CheakOldRequest=await _Context.TaskRequests
+                .FirstOrDefaultAsync(p=>p.TaskId==taskRequestDTO.TaskId&&p.UserId==userId);
             if (CheakOldRequest != null) return BadRequest("You already Requested this Task before");
            
 
@@ -50,11 +52,23 @@ namespace JiraLiteAPI.Controller
                 TaskId = taskRequestDTO.TaskId,
                 UserId = userId,
                 Status=RequestStatus.pending,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
             await _Context.TaskRequests.AddAsync(TaskRequests);
+            _Context.ActivityLogs.Add(new ActivityLog
+            {
+                TaskId = task.Id,
+                UserId = userId,
+                Action = ActivityType.RequestCreated,
+                Description = $"User {userId} Requested a Task {task.Title} ",
+                CreatedAt = DateTime.UtcNow
+            });
             await _Context.SaveChangesAsync();
-            return Ok("request Sent");
+            return Ok(new
+            {
+                message = "Request sent successfully",
+                requestId = TaskRequests.Id
+            });
 
         }
 
@@ -123,8 +137,9 @@ namespace JiraLiteAPI.Controller
         public async Task<IActionResult> HandleRequest(HandleRequestDTO dto,int requestId )
         {
             if(!ModelState.IsValid) return BadRequest(ModelState);
-     
-
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+                return Unauthorized();
             var request = await _Context.TaskRequests
                   .Include(r => r.WorkTask)
                   .FirstOrDefaultAsync(r => r.Id == requestId);
@@ -141,7 +156,7 @@ namespace JiraLiteAPI.Controller
 
             if (dto.Status == ApproveRequests.Accepted)
             {
-                if(task.AssignedUserId !=null)
+                if (task.AssignedUserId != null)
                     return BadRequest("Task already assigned");
                 task.AssignedUserId = request.UserId;
                 task.Status = TasksStatus.InProgress;
@@ -155,12 +170,30 @@ namespace JiraLiteAPI.Controller
                 {
                     other.Status = RequestStatus.rejected;
                 }
+                _Context.ActivityLogs.Add(new ActivityLog
+                {
+                    TaskId = task.Id,
+                    UserId = userId,
+                    Action = ActivityType.RequestApproved,
+                    Description = $"Admin assigned task '{task.Title}' to user {request.UserId}",
+                    CreatedAt = DateTime.UtcNow
+                });
 
             }
 
 
-            else if (dto.Status == ApproveRequests.Rejected)  request.Status = RequestStatus.rejected;
-             
+            else if (dto.Status == ApproveRequests.Rejected)
+            {
+                request.Status = RequestStatus.rejected;
+                _Context.ActivityLogs.Add(new ActivityLog
+                {
+                    TaskId = task.Id,
+                    UserId = userId,
+                    Action = ActivityType.RequestRejected,
+                    Description = $"Admin Rejected the task {task.Title} From User {userId} ",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             else return BadRequest("Invalid status");
             
 
@@ -207,12 +240,33 @@ namespace JiraLiteAPI.Controller
         }
 
         [HttpDelete("{RequestId:int}")]
-        [Authorize(Roles = ("Admin"))]
+        [Authorize]
         public async Task<IActionResult> DeleteRequest(int RequestId)
         {
-            var RequestsTask = await _Context.TaskRequests.FirstOrDefaultAsync(t => t.Id == RequestId);
-            if (RequestsTask == null) return NotFound();
-            _Context.TaskRequests.Remove(RequestsTask);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+            var request = await _Context.TaskRequests.FirstOrDefaultAsync(t => t.Id == RequestId);
+            if (request == null) return NotFound();
+            var taskId = request.TaskId;
+            var requestId = request.Id;
+            var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+            if (task == null) return NotFound("Task not found");
+  
+            if (!User.IsInRole("Admin") && request.UserId != userId)
+                return Forbid();
+          
+
+
+
+            _Context.TaskRequests.Remove(request);
+            _Context.ActivityLogs.Add(new ActivityLog
+            {
+                TaskId = taskId,
+                UserId = userId,
+                Action = ActivityType.RequestDeleted,
+                Description = $"Request {requestId} for task '{task.Title}' was deleted by user {userId}",
+                CreatedAt = DateTime.UtcNow
+            });
             await _Context.SaveChangesAsync();
             return Ok(new
             {
@@ -222,6 +276,18 @@ namespace JiraLiteAPI.Controller
 
 
         }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

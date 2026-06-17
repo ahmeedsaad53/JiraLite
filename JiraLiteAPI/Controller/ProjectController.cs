@@ -39,7 +39,7 @@ namespace JiraLiteAPI.Controller
                 CreatedBy = userId,
                 DeadLine = projectDTO.DeadLine,
                 Status = projectDTO.Status,
-                CreatedOn = DateTime.Now
+                CreatedOn = DateTime.UtcNow
             };
             _Context.Projects.Add(NewProject);
             await _Context.SaveChangesAsync();
@@ -157,6 +157,7 @@ namespace JiraLiteAPI.Controller
             Project.Status = editProjectDTO.Status;
             Project.DeadLine = editProjectDTO.DeadLine;
             Project.Description = editProjectDTO.Description;
+
             await _Context.SaveChangesAsync();
             return Ok("Project Updated Successfully");
         }
