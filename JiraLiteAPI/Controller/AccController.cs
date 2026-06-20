@@ -1,4 +1,4 @@
-﻿using JiraLiteAPI.Data;
+﻿using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using JiraLiteAPI.Data.Models;
 
 namespace JiraLiteAPI.Controller
 {

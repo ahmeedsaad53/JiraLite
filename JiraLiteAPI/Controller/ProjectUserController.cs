@@ -1,4 +1,5 @@
-﻿using JiraLiteAPI.Data;
+﻿using JiraLiteAPI.Data.Models;
+using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

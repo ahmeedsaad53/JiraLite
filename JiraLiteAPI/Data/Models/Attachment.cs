@@ -1,4 +1,6 @@
-﻿namespace JiraLiteAPI.Data
+﻿using JiraLiteAPI.Data.Context;
+
+namespace JiraLiteAPI.Data.Models
 {
     public class Attachment
     {

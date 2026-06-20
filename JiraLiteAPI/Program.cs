@@ -1,5 +1,6 @@
-
-using JiraLiteAPI.Data;
+using JiraLiteAPI.Data.Context;
+using JiraLiteAPI.Enum;
+using JiraLiteAPI.Services.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,9 @@ using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-using JiraLiteAPI.Enum;
+using JiraLiteAPI.Service.PService;
+using JiraLiteAPI.Service.TaskSevice;
+
 
 
 namespace WebApi
@@ -134,7 +137,9 @@ namespace WebApi
                                .AllowAnyHeader();
                     });
             });
-
+            builder.Services.AddScoped<IAuthorizationServiceCustom, AuthorizationServiceCustom>();
+            builder.Services.AddScoped<IProjectService, ProjectService>();
+            builder.Services.AddScoped<ITaskService, TasksService>();
             var app = builder.Build();
 
             app.UseCors("AllowAll");

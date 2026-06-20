@@ -1,5 +1,6 @@
 ﻿using Humanizer;
-using JiraLiteAPI.Data;
+using JiraLiteAPI.Data.Models;
+using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.DTO;
 using JiraLiteAPI.Enum;
 using Microsoft.AspNetCore.Authorization;
@@ -51,14 +52,13 @@ namespace JiraLiteAPI.Controller
                 return NotFound("Task not found");
 
             //  Check membership
-            if (!User.IsInRole("Admin"))
-            {
+            
                 var isMember = await _Context.ProjectUsers
                     .AnyAsync(p => p.ProjectId == task.ProjectId && p.UserId == userId);
 
                 if (!isMember)
                     return Forbid();
-            }
+            
 
             //  Prepare folder
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");

@@ -1,6 +1,6 @@
 ﻿using JiraLiteAPI.Enum;
 
-namespace JiraLiteAPI.Data
+namespace JiraLiteAPI.Data.Models
 {
     public class Project
     {

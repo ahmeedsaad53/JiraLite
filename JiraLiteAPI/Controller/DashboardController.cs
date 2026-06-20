@@ -1,5 +1,5 @@
 ﻿using Humanizer;
-using JiraLiteAPI.Data;
+using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.DTO;
 using JiraLiteAPI.Enum;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using JiraLiteAPI.Data.Models;
+
 
 namespace JiraLiteAPI.Controller
 {

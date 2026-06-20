@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using JiraLiteAPI.Data.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace JiraLiteAPI.Data
+namespace JiraLiteAPI.Data.Context
 {
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {

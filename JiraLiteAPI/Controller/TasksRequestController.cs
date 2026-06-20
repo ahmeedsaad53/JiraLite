@@ -1,5 +1,6 @@
 ﻿using Azure.Core;
-using JiraLiteAPI.Data;
+using JiraLiteAPI.Data.Models;
+using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.DTO;
 using JiraLiteAPI.Enum;
 using Microsoft.AspNetCore.Authorization;

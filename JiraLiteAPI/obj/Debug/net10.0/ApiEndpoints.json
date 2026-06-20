@@ -349,7 +349,7 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "projectDTO",
+        "Name": "dto",
         "Type": "JiraLiteAPI.DTO.ProjectDTO",
         "IsRequired": true
       }
@@ -384,7 +384,7 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.ProjectController",
-    "Method": "EditProjectStatus",
+    "Method": "UpdateStatus",
     "RelativePath": "api/Project/{id}",
     "HttpMethod": "PATCH",
     "IsController": true,
@@ -396,7 +396,7 @@
         "IsRequired": true
       },
       {
-        "Name": "updateProjectProgressDTO",
+        "Name": "dto",
         "Type": "JiraLiteAPI.DTO.UpdateProjectProgressDTO",
         "IsRequired": true
       }
@@ -405,7 +405,7 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.ProjectController",
-    "Method": "EditProject",
+    "Method": "UpdateProject",
     "RelativePath": "api/Project/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
@@ -417,7 +417,7 @@
         "IsRequired": true
       },
       {
-        "Name": "editProjectDTO",
+        "Name": "dto",
         "Type": "JiraLiteAPI.DTO.EditProjectDTO",
         "IsRequired": true
       }

@@ -1,10 +1,12 @@
-﻿using JiraLiteAPI.Data;
+﻿using JiraLiteAPI.Data.Context;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using JiraLiteAPI.Data.Models;
+
 
 namespace JiraLiteAPI.Controller
 {
