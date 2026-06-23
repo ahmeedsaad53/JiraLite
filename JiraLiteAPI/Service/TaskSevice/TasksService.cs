@@ -141,7 +141,7 @@ namespace JiraLiteAPI.Service.TaskSevice
             })
             .ToListAsync();
 
-            return new { projectTasks };
+            return  projectTasks ;
         }
 
 
@@ -190,7 +190,7 @@ namespace JiraLiteAPI.Service.TaskSevice
             if (task == null)
                throw new Exception ("Task not found");
 
-            return new { task };
+            return  task ;
         }
 
 
@@ -368,7 +368,7 @@ namespace JiraLiteAPI.Service.TaskSevice
                     FullName = (t.AssignedUser.FName ?? "") + " " + (t.AssignedUser.LName ?? "")
                 }
             }).ToListAsync();
-            return new { UserTasks };
+            return  UserTasks ;
         }
 
 
@@ -432,7 +432,7 @@ namespace JiraLiteAPI.Service.TaskSevice
                 })
                 .ToListAsync();
 
-            return new { tasks };
+            return  tasks ;
 
 
 

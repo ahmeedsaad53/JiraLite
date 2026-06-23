@@ -67,14 +67,34 @@
         }
       }
     },
-    "/api/Acc/{userId}": {
+    "/api/Acc/{id}": {
       "delete": {
         "tags": [
           "Acc"
         ],
         "parameters": [
           {
-            "name": "userId",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Acc"
+        ],
+        "parameters": [
+          {
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -93,28 +113,6 @@
       "get": {
         "tags": [
           "Acc"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Acc/{id}": {
-      "get": {
-        "tags": [
-          "Acc"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "responses": {
           "200": {

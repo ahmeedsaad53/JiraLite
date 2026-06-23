@@ -1,16 +1,7 @@
-﻿using JiraLiteAPI.Data.Context;
-using JiraLiteAPI.DTO;
+﻿using JiraLiteAPI.DTO;
+using JiraLiteAPI.Service.AccountService;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using JiraLiteAPI.Data.Models;
 
 namespace JiraLiteAPI.Controller
 {
@@ -18,157 +9,57 @@ namespace JiraLiteAPI.Controller
     [ApiController]
     public class AccController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly AppDbContext _Context;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IAccountService _accountService;
 
-        private readonly IConfiguration _config;
-
-
-        public AccController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, AppDbContext context, IConfiguration config)
+        public AccController(IAccountService accountService)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _Context = context;
-            _config = config; 
+            _accountService = accountService;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDTO registerDTO)
+        public async Task<IActionResult> Register(RegisterDTO dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-  
-
-            if (ModelState.IsValid)
-            {
-                ApplicationUser user = new ApplicationUser()
-                {
-                    Email = registerDTO.Email,
-                    FName = registerDTO.FName,
-                    UserName = registerDTO.Email,
-                    LName = registerDTO.LName,
-                    PhoneNumber = registerDTO.phoneNumber
-                };
-                IdentityResult result = await _userManager.CreateAsync(user, registerDTO.Password);
-                if (!result.Succeeded) return BadRequest(result.Errors);
-                await _userManager.AddToRoleAsync(user, "User");
-                return Ok("User created successfully");
-            }
-            return BadRequest("Invalid request");
+            var result = await _accountService.Register(dto);
+            return Ok(result);
         }
+
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDTO loginDTO)
+        public async Task<IActionResult> Login(LoginDTO dto)
         {
-            
-            if (!ModelState.IsValid) return BadRequest("Invalid request");
-            ApplicationUser user = await _userManager.FindByEmailAsync(loginDTO.Email);
-            if (user == null) return BadRequest("Invalid UserName or Password");
-            bool isPasswordValid = await _userManager.CheckPasswordAsync(user, loginDTO.Password);
-            if (!isPasswordValid) return BadRequest("Invalid UserName or Password");
-            List <Claim> claims = new List<Claim>()
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.FName + " " + user.LName),
-                new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())
-            };
-
-            var key = _config["JwtSettings:Key"];
-            if (string.IsNullOrEmpty(key))
-                throw new Exception("JWT key is missing");
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-            var userRoles = await _userManager.GetRolesAsync(user);
-            foreach (var role in userRoles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
-            JwtSecurityToken token = new JwtSecurityToken(
-               issuer: "http://localhost:5009",
-               audience: "http://localhost:5009",
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
-                signingCredentials: signingCredentials
-
-                );
-            return Ok(new
-            {
-                token = new JwtSecurityTokenHandler()
-                   .WriteToken(token),
-
-                expiration = DateTime.UtcNow.AddDays(7)
-            });
-
+            var result = await _accountService.Login(dto);
+            return Ok(result);
         }
-        [HttpDelete("{userId}")]
+
+        [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult>DeleteUser(string userId)
+        public async Task<IActionResult> DeleteUser(string id)
         {
-            var user = await _Context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null) return BadRequest("User not Found");
-            await _userManager.DeleteAsync(user);
-
-            return Ok(new
-            {
-                message = "User deleted successfully",
-                userId = userId
-            });
+            var result = await _accountService.DeleteUser(id);
+            return Ok(result);
         }
+
         [HttpGet("GetAll")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllUser()
+        public async Task<IActionResult> GetAll()
         {
-            var Users=await _Context.Users.Select(u => new
-            {
-                u.Id,
-                u.UserName,
-                u.PhoneNumber,
-                u.Email
-
-            }).ToListAsync();
-            return Ok(Users);
-               
+            var result = await _accountService.GetAllUser();
+            return Ok(result);
         }
+
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin")]
-
-        public async Task<IActionResult>GetById(string id)
+        public async Task<IActionResult> GetById(string id)
         {
-            var user= await _Context.Users.FirstOrDefaultAsync(u => u.Id == id);
-            if (user == null) return BadRequest();
-            else return Ok(new
-            { 
-                user.UserName,
-                user.PhoneNumber,
-                user.Email,
-                user.Id
-            });
+            var result = await _accountService.GetById(id);
+            return Ok(result);
         }
+
         [HttpPost("assign-role")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AssignRole(AssignRoleDTO dto)
         {
-            var user = await _userManager.FindByIdAsync(dto.UserId);
-
-            if (user == null)
-                return NotFound("User not found");
-
-            if (!await _roleManager.RoleExistsAsync(dto.Role))
-                return BadRequest("Role does not exist");
-
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            await _userManager.RemoveFromRolesAsync(user, currentRoles);
-
-            var result = await _userManager.AddToRoleAsync(user, dto.Role);
-
-            if (!result.Succeeded)
-                return BadRequest(result.Errors);
-
-            return Ok("Role assigned successfully");
+            var result = await _accountService.AssignRole(dto);
+            return Ok(result);
         }
-
     }
-    }
+}

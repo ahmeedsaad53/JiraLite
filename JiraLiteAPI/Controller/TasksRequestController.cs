@@ -1,8 +1,10 @@
 ﻿using Azure.Core;
-using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.Data.Context;
+using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
 using JiraLiteAPI.Enum;
+using JiraLiteAPI.Service.TaskRequestService;
+using JiraLiteAPI.Service.TaskSevice;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -17,62 +19,24 @@ namespace JiraLiteAPI.Controller
     [ApiController]
     public class TasksRequestController : ControllerBase
     {
+        private readonly ITaskRequestService _taskrequestService;
 
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly AppDbContext _Context;
-        public TasksRequestController(UserManager<ApplicationUser> userManager, AppDbContext context)
+        public TasksRequestController(ITaskRequestService taskrequestService)
         {
-            _userManager = userManager;
-            _Context = context;
+            _taskrequestService = taskrequestService;
         }
+
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> CreateTaskRequest(TaskRequestDTO taskRequestDTO)
         {
-            if (taskRequestDTO == null) return BadRequest(); 
-            var userId=User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                return Unauthorized();
-            var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == taskRequestDTO.TaskId);
-            if (task == null) return NotFound();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            
-            var isMember = await _Context.ProjectUsers
-                .AnyAsync(p => p.UserId == userId&&p.ProjectId==task.ProjectId);
-            if (!isMember) return Forbid();
-            
-            if (task.AssignedUserId != null) return BadRequest("Task is already assigned to another user ");
-            if(task.Status!= TasksStatus.ToDo) return BadRequest("Task is not available for request");
-            var CheakOldRequest=await _Context.TaskRequests
-                .FirstOrDefaultAsync(p=>p.TaskId==taskRequestDTO.TaskId&&p.UserId==userId);
-            if (CheakOldRequest != null) return BadRequest("You already Requested this Task before");
-           
+            var result = await _taskrequestService.CreateTaskRequest(taskRequestDTO, User);
 
-            var TaskRequests = new TaskRequest
-            {
-                TaskId = taskRequestDTO.TaskId,
-                UserId = userId,
-                Status=RequestStatus.pending,
-                CreatedAt = DateTime.UtcNow
-            };
-            await _Context.TaskRequests.AddAsync(TaskRequests);
-            _Context.ActivityLogs.Add(new ActivityLog
-            {
-                TaskId = task.Id,
-                UserId = userId,
-                Action = ActivityType.RequestCreated,
-                Description = $"User {userId} Requested a Task {task.Title} ",
-                CreatedAt = DateTime.UtcNow
-            });
-            await _Context.SaveChangesAsync();
-            return Ok(new
-            {
-                message = "Request sent successfully",
-                requestId = TaskRequests.Id
-            });
-
+            return Ok(result);
         }
-
 
 
 
@@ -80,132 +44,25 @@ namespace JiraLiteAPI.Controller
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetRequests(RequestStatus? status,int? taskId,int page = 1,int pageSize = 10)
         {
-            if (page < 1) page = 1;
-            if (pageSize > 50) pageSize = 50;
 
-            var query = _Context.TaskRequests.AsQueryable();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            // Default: Pending if no status
-            if (!status.HasValue)
-                query = query.Where(r => r.Status == RequestStatus.pending);
-            else
-                query = query.Where(r => r.Status == status);
+            var result = await _taskrequestService.GetRequests(status, taskId, page, pageSize);
 
-            // Filter by task
-            if (taskId.HasValue)
-                query = query.Where(r => r.TaskId == taskId);
-
-            // Total count
-            var totalCount = await query.CountAsync();
-
-            //  Pagination + sorting
-            var requests = await query
-                .OrderByDescending(r => r.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(r => new
-                {
-                    r.Id,
-                    r.Status,
-                    r.CreatedAt,
-
-                    Task = r.WorkTask == null ? null : new
-                    {
-                        r.WorkTask.Id,
-                        r.WorkTask.Title
-                    },
-
-                    User = r.User == null ? null : new
-                    {
-                        r.User.Id,
-                        FullName = (r.User.FName ?? "") + " " + (r.User.LName ?? "")
-                    }
-                })
-                .ToListAsync();
-
-            return Ok(new
-            {
-                page,
-                pageSize,
-                totalCount,
-                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                data = requests
-            });
+            return Ok(result);
         }
 
         [HttpPatch("{requestId:int}")]
         [Authorize (Roles =("Admin"))]
         public async Task<IActionResult> HandleRequest(HandleRequestDTO dto,int requestId )
         {
-            if(!ModelState.IsValid) return BadRequest(ModelState);
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                return Unauthorized();
-            var request = await _Context.TaskRequests
-                  .Include(r => r.WorkTask)
-                  .FirstOrDefaultAsync(r => r.Id == requestId);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            if (request == null)
-                return NotFound("Request not found");
+            var result = await _taskrequestService.HandleRequest(dto,requestId, User);
 
-            if (request.Status != RequestStatus.pending)
-                return BadRequest("Request already handled");
-
-            var task = request.WorkTask;
-
-            if (task == null) return NotFound("Task Not Found ");
-
-            if (dto.Status == ApproveRequests.Accepted)
-            {
-                if (task.AssignedUserId != null)
-                    return BadRequest("Task already assigned");
-                task.AssignedUserId = request.UserId;
-                task.Status = TasksStatus.InProgress;
-                request.Status = RequestStatus.accepted;
-
-                var otherRequests = await _Context.TaskRequests
-                            .Where(r => r.TaskId == task.Id && r.Id != requestId)
-                            .ToListAsync();
-
-                foreach (var other in otherRequests)
-                {
-                    other.Status = RequestStatus.rejected;
-                }
-                _Context.ActivityLogs.Add(new ActivityLog
-                {
-                    TaskId = task.Id,
-                    UserId = userId,
-                    Action = ActivityType.RequestApproved,
-                    Description = $"Admin assigned task '{task.Title}' to user {request.UserId}",
-                    CreatedAt = DateTime.UtcNow
-                });
-
-            }
-
-
-            else if (dto.Status == ApproveRequests.Rejected)
-            {
-                request.Status = RequestStatus.rejected;
-                _Context.ActivityLogs.Add(new ActivityLog
-                {
-                    TaskId = task.Id,
-                    UserId = userId,
-                    Action = ActivityType.RequestRejected,
-                    Description = $"Admin Rejected the task {task.Title} From User {userId} ",
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
-            else return BadRequest("Invalid status");
-            
-
-            await _Context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                message = "Request handled successfully",
-                requestId = request.Id,
-                status = request.Status
-            });
+            return Ok(result);
         }
 
 
@@ -213,68 +70,24 @@ namespace JiraLiteAPI.Controller
         [Authorize]
         public async Task<IActionResult> GetMyRequests()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            if (userId == null)
-                return Unauthorized();
+            var result = await _taskrequestService.GetMyRequests( User);
 
-            var requests = await _Context.TaskRequests
-             
-               .Where(r => r.UserId == userId)
-               .Select(r => new
-                {
-                    r.Id,
-                    r.Status,
-
-                    Task = r.WorkTask == null ? null : new
-                    {
-                        r.WorkTask.Id,
-                        Title = r.WorkTask.Title,
-                        Description = r.WorkTask.Description,
-                        Status = r.WorkTask.Status,
-                        Deadline = r.WorkTask.Deadline 
-                     }
-                })
-                .ToListAsync();
-
-            return Ok(requests);
+            return Ok(result);
         }
 
         [HttpDelete("{RequestId:int}")]
         [Authorize]
         public async Task<IActionResult> DeleteRequest(int RequestId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return Unauthorized();
-            var request = await _Context.TaskRequests.FirstOrDefaultAsync(t => t.Id == RequestId);
-            if (request == null) return NotFound();
-            var taskId = request.TaskId;
-            var requestId = request.Id;
-            var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
-            if (task == null) return NotFound("Task not found");
-  
-            if (!User.IsInRole("Admin") && request.UserId != userId)
-                return Forbid();
-          
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var result = await _taskrequestService.DeleteRequest(RequestId, User);
 
-
-            _Context.TaskRequests.Remove(request);
-            _Context.ActivityLogs.Add(new ActivityLog
-            {
-                TaskId = taskId,
-                UserId = userId,
-                Action = ActivityType.RequestDeleted,
-                Description = $"Request {requestId} for task '{task.Title}' was deleted by user {userId}",
-                CreatedAt = DateTime.UtcNow
-            });
-            await _Context.SaveChangesAsync();
-            return Ok(new
-            {
-                message = "Request deleted successfully",
-                RequestsTask = RequestId
-            });
-
+            return Ok(result);
 
         }
 

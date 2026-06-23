@@ -1,5 +1,14 @@
 using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.Enum;
+using JiraLiteAPI.Service.AccountService;
+using JiraLiteAPI.Service.ActivityLogService;
+using JiraLiteAPI.Service.AttachmentService;
+using JiraLiteAPI.Service.CommentSernice;
+using JiraLiteAPI.Service.DashBoardService;
+using JiraLiteAPI.Service.ProjectUsersService;
+using JiraLiteAPI.Service.PService;
+using JiraLiteAPI.Service.TaskRequestService;
+using JiraLiteAPI.Service.TaskSevice;
 using JiraLiteAPI.Services.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -9,8 +18,6 @@ using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-using JiraLiteAPI.Service.PService;
-using JiraLiteAPI.Service.TaskSevice;
 
 
 
@@ -140,6 +147,17 @@ namespace WebApi
             builder.Services.AddScoped<IAuthorizationServiceCustom, AuthorizationServiceCustom>();
             builder.Services.AddScoped<IProjectService, ProjectService>();
             builder.Services.AddScoped<ITaskService, TasksService>();
+            builder.Services.AddScoped<IProjectUserService, ProjectUserService>();
+            builder.Services.AddScoped<ITaskRequestService, TaskRequestService>();
+            builder.Services.AddScoped<ICommentService, CommentsService>();
+            builder.Services.AddScoped<IDashBoardService, DashboradService>();
+            builder.Services.AddScoped<IAttachmentService, AttachmentsService>();
+            builder.Services.AddScoped<IActivityLogService, ActivityLogServices>();
+            builder.Services.AddScoped<IAccountService, AccountService>();
+
+
+
+
             var app = builder.Build();
 
             app.UseCors("AllowAll");

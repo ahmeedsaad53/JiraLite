@@ -1,9 +1,9 @@
 [
   {
     "ContainingType": "JiraLiteAPI.Controller.AccController",
-    "Method": "GetById",
+    "Method": "DeleteUser",
     "RelativePath": "api/Acc/{id}",
-    "HttpMethod": "GET",
+    "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
     "Parameters": [
@@ -17,14 +17,14 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.AccController",
-    "Method": "DeleteUser",
-    "RelativePath": "api/Acc/{userId}",
-    "HttpMethod": "DELETE",
+    "Method": "GetById",
+    "RelativePath": "api/Acc/{id}",
+    "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "userId",
+        "Name": "id",
         "Type": "System.String",
         "IsRequired": true
       }
@@ -49,7 +49,7 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.AccController",
-    "Method": "GetAllUser",
+    "Method": "GetAll",
     "RelativePath": "api/Acc/GetAll",
     "HttpMethod": "GET",
     "IsController": true,
@@ -66,7 +66,7 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "loginDTO",
+        "Name": "dto",
         "Type": "JiraLiteAPI.DTO.LoginDTO",
         "IsRequired": true
       }
@@ -82,7 +82,7 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "registerDTO",
+        "Name": "dto",
         "Type": "JiraLiteAPI.DTO.RegisterDTO",
         "IsRequired": true
       }
