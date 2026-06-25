@@ -13,4 +13,6 @@ namespace JiraLiteAPI.DTO
         public string? AssignedUserId { get; set; }
 
     }
+   
+
 }

@@ -109,7 +109,7 @@
         }
       }
     },
-    "/api/Acc/GetAll": {
+    "/api/Acc": {
       "get": {
         "tags": [
           "Acc"
@@ -273,9 +273,7 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/Attachment": {
+      },
       "get": {
         "tags": [
           "Attachment"
@@ -283,7 +281,8 @@
         "parameters": [
           {
             "name": "taskId",
-            "in": "query",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -297,7 +296,7 @@
         }
       }
     },
-    "/api/Attachment/{id}": {
+    "/api/Attachment/download/{id}": {
       "get": {
         "tags": [
           "Attachment"
@@ -318,7 +317,9 @@
             "description": "OK"
           }
         }
-      },
+      }
+    },
+    "/api/Attachment/{id}": {
       "delete": {
         "tags": [
           "Attachment"
@@ -341,28 +342,18 @@
         }
       }
     },
-    "/api/Attachment/all": {
+    "/api/Attachment/files/{fileName}": {
       "get": {
         "tags": [
           "Attachment"
         ],
         "parameters": [
           {
-            "name": "page",
-            "in": "query",
+            "name": "fileName",
+            "in": "path",
+            "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 10
+              "type": "string"
             }
           }
         ],
@@ -604,46 +595,6 @@
           }
         }
       },
-      "patch": {
-        "tags": [
-          "Project"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectProgressDTO"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectProgressDTO"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectProgressDTO"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
       "put": {
         "tags": [
           "Project"
@@ -699,6 +650,48 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Project/{id}/status": {
+      "patch": {
+        "tags": [
+          "Project"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectProgressDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectProgressDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectProgressDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -996,20 +989,10 @@
         }
       }
     },
-    "/api/Tasks/TaskCreator/{createdBy}": {
+    "/api/Tasks/my-created-tasks": {
       "get": {
         "tags": [
           "Tasks"
-        ],
-        "parameters": [
-          {
-            "name": "createdBy",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "responses": {
           "200": {
@@ -1047,7 +1030,9 @@
             "description": "OK"
           }
         }
-      },
+      }
+    },
+    "/api/TasksRequest/all": {
       "get": {
         "tags": [
           "TasksRequest"
@@ -1134,12 +1119,21 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/TasksRequest/myTasks": {
-      "get": {
+      },
+      "delete": {
         "tags": [
           "TasksRequest"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -1148,21 +1142,10 @@
         }
       }
     },
-    "/api/TasksRequest/{RequestId}": {
-      "delete": {
+    "/api/TasksRequest/my-requests": {
+      "get": {
         "tags": [
           "TasksRequest"
-        ],
-        "parameters": [
-          {
-            "name": "RequestId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
         ],
         "responses": {
           "200": {

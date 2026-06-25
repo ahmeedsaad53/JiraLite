@@ -1,6 +1,16 @@
 [
   {
-    "ContainingType": "JiraLiteAPI.Controller.AccController",
+    "ContainingType": "AccController",
+    "Method": "GetAll",
+    "RelativePath": "api/Acc",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AccController",
     "Method": "DeleteUser",
     "RelativePath": "api/Acc/{id}",
     "HttpMethod": "DELETE",
@@ -16,7 +26,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.AccController",
+    "ContainingType": "AccController",
     "Method": "GetById",
     "RelativePath": "api/Acc/{id}",
     "HttpMethod": "GET",
@@ -32,7 +42,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.AccController",
+    "ContainingType": "AccController",
     "Method": "AssignRole",
     "RelativePath": "api/Acc/assign-role",
     "HttpMethod": "POST",
@@ -48,17 +58,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.AccController",
-    "Method": "GetAll",
-    "RelativePath": "api/Acc/GetAll",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "JiraLiteAPI.Controller.AccController",
+    "ContainingType": "AccController",
     "Method": "Login",
     "RelativePath": "api/Acc/login",
     "HttpMethod": "POST",
@@ -74,7 +74,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.AccController",
+    "ContainingType": "AccController",
     "Method": "Register",
     "RelativePath": "api/Acc/register",
     "HttpMethod": "POST",
@@ -143,39 +143,7 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
-    "Method": "GetAllFills",
-    "RelativePath": "api/Attachment",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "taskId",
-        "Type": "System.Int32",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
-    "Method": "DownloadAttachment",
-    "RelativePath": "api/Attachment/{id}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
-    "Method": "DeleteAttachment",
+    "Method": "Delete",
     "RelativePath": "api/Attachment/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
@@ -191,7 +159,7 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
-    "Method": "UploadAttachment",
+    "Method": "Upload",
     "RelativePath": "api/Attachment/{taskId}",
     "HttpMethod": "POST",
     "IsController": true,
@@ -212,21 +180,48 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
-    "Method": "GetAllAttachments",
-    "RelativePath": "api/Attachment/all",
+    "Method": "GetFiles",
+    "RelativePath": "api/Attachment/{taskId}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "page",
+        "Name": "taskId",
         "Type": "System.Int32",
-        "IsRequired": false
-      },
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
+    "Method": "Download",
+    "RelativePath": "api/Attachment/download/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
       {
-        "Name": "pageSize",
+        "Name": "id",
         "Type": "System.Int32",
-        "IsRequired": false
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.AttachmentController",
+    "Method": "GetFile",
+    "RelativePath": "api/Attachment/files/{fileName}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "fileName",
+        "Type": "System.String",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []
@@ -342,7 +337,7 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.ProjectController",
-    "Method": "AddNewProject",
+    "Method": "CreateProject",
     "RelativePath": "api/Project",
     "HttpMethod": "POST",
     "IsController": true,
@@ -384,27 +379,6 @@
   },
   {
     "ContainingType": "JiraLiteAPI.Controller.ProjectController",
-    "Method": "UpdateStatus",
-    "RelativePath": "api/Project/{id}",
-    "HttpMethod": "PATCH",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Int32",
-        "IsRequired": true
-      },
-      {
-        "Name": "dto",
-        "Type": "JiraLiteAPI.DTO.UpdateProjectProgressDTO",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
     "Method": "UpdateProject",
     "RelativePath": "api/Project/{id}",
     "HttpMethod": "PUT",
@@ -435,6 +409,27 @@
       {
         "Name": "id",
         "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "JiraLiteAPI.Controller.ProjectController",
+    "Method": "UpdateProjectStatus",
+    "RelativePath": "api/Project/{id}/status",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "JiraLiteAPI.DTO.UpdateProjectProgressDTO",
         "IsRequired": true
       }
     ],
@@ -617,17 +612,11 @@
   {
     "ContainingType": "JiraLiteAPI.Controller.TasksController",
     "Method": "GetTaskCreator",
-    "RelativePath": "api/Tasks/TaskCreator/{createdBy}",
+    "RelativePath": "api/Tasks/my-created-tasks",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [
-      {
-        "Name": "createdBy",
-        "Type": "System.String",
-        "IsRequired": true
-      }
-    ],
+    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -647,7 +636,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.TasksRequestController",
+    "ContainingType": "TasksRequestController",
     "Method": "CreateTaskRequest",
     "RelativePath": "api/TasksRequest",
     "HttpMethod": "POST",
@@ -655,7 +644,7 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "taskRequestDTO",
+        "Name": "dto",
         "Type": "JiraLiteAPI.DTO.TaskRequestDTO",
         "IsRequired": true
       }
@@ -663,9 +652,46 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.TasksRequestController",
+    "ContainingType": "TasksRequestController",
+    "Method": "HandleRequest",
+    "RelativePath": "api/TasksRequest/{requestId}",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "requestId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "JiraLiteAPI.DTO.HandleRequestDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "TasksRequestController",
+    "Method": "DeleteRequest",
+    "RelativePath": "api/TasksRequest/{requestId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "requestId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "TasksRequestController",
     "Method": "GetRequests",
-    "RelativePath": "api/TasksRequest",
+    "RelativePath": "api/TasksRequest/all",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -694,46 +720,9 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "JiraLiteAPI.Controller.TasksRequestController",
-    "Method": "HandleRequest",
-    "RelativePath": "api/TasksRequest/{requestId}",
-    "HttpMethod": "PATCH",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "dto",
-        "Type": "JiraLiteAPI.DTO.HandleRequestDTO",
-        "IsRequired": true
-      },
-      {
-        "Name": "requestId",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "JiraLiteAPI.Controller.TasksRequestController",
-    "Method": "DeleteRequest",
-    "RelativePath": "api/TasksRequest/{RequestId}",
-    "HttpMethod": "DELETE",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "RequestId",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "JiraLiteAPI.Controller.TasksRequestController",
+    "ContainingType": "TasksRequestController",
     "Method": "GetMyRequests",
-    "RelativePath": "api/TasksRequest/myTasks",
+    "RelativePath": "api/TasksRequest/my-requests",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

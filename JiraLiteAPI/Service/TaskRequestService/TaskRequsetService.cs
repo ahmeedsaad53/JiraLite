@@ -20,13 +20,12 @@ namespace JiraLiteAPI.Service.TaskRequestService
             _userManager = userManager;
         }
 
-        public async Task<ServiceResponse<CreateTaskRequestResponseDTO>> CreateTaskRequest(
-            TaskRequestDTO dto, ClaimsPrincipal user)
+        public async Task<ServiceResponse<CreateTaskRequestResponseDTO>> CreateTaskRequest(TaskRequestDTO dto, ClaimsPrincipal user)
         {
             if (dto == null)
                 return ServiceResponse<CreateTaskRequestResponseDTO>.Fail("Invalid request");
 
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);  
             if (string.IsNullOrEmpty(userId))
                 return ServiceResponse<CreateTaskRequestResponseDTO>.Fail("Unauthorized");
 

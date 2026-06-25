@@ -13,37 +13,32 @@ namespace JiraLiteAPI.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ActivityLogController : ControllerBase
+    public class ActivityLogController : BaseController
     {
-        private readonly IActivityLogService _activityLogService;
-        public ActivityLogController(IActivityLogService activityLogService)
-        {
+        private readonly IActivityLogService _service;
 
-            _activityLogService = activityLogService;
+        public ActivityLogController(IActivityLogService service)
+        {
+            _service = service;
         }
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllLogs(int? taskId, int page = 1, int pageSize = 10)
         {
-            if(!ModelState.IsValid) 
-                return BadRequest(ModelState);
-            var result= await _activityLogService.GetAllLogs(taskId, page, pageSize);
-            return Ok(result);
-
+            var result = await _service.GetAllLogs(taskId, page, pageSize);
+            return HandleResponse(result);
         }
 
         [HttpGet("my")]
         [Authorize]
         public async Task<IActionResult> GetMyLogs(int? taskId, int page = 1, int pageSize = 10)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-            var result = await _activityLogService.GetMyLogs(User, taskId, page, pageSize);
-            return Ok(result);
-
+            var result = await _service.GetMyLogs(User, taskId, page, pageSize);
+            return HandleResponse(result);
         }
-
-
     }
+
+
 }
+

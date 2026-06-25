@@ -4,7 +4,6 @@ using JiraLiteAPI.Service.AccountService;
 using JiraLiteAPI.Service.ActivityLogService;
 using JiraLiteAPI.Service.AttachmentService;
 using JiraLiteAPI.Service.CommentSernice;
-using JiraLiteAPI.Service.DashBoardService;
 using JiraLiteAPI.Service.ProjectUsersService;
 using JiraLiteAPI.Service.PService;
 using JiraLiteAPI.Service.TaskRequestService;

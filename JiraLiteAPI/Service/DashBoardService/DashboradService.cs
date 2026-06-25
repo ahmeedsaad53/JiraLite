@@ -1,150 +1,116 @@
-﻿using Humanizer;
-using JiraLiteAPI.Data.Context;
+﻿using JiraLiteAPI.Data.Context;
+using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using JiraLiteAPI.Enum;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using JiraLiteAPI.Data.Models;
 
-
-
-namespace JiraLiteAPI.Service.DashBoardService
+public class DashboradService : IDashBoardService
 {
-    public class DashboradService:IDashBoardService
+    private readonly AppDbContext _context;
+
+    public DashboradService(AppDbContext context)
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly AppDbContext _Context;
-        public DashboradService(UserManager<ApplicationUser> userManager, AppDbContext context)
-        {
-            _userManager = userManager;
-            _Context = context;
-        }
+        _context = context;
+    }
 
+    public async Task<ServiceResponse<AdminDashboardDTO>> GetAdminDashboard()
+    {
+        var totalProjects = await _context.Projects.CountAsync();
+        var totalTasks = await _context.Tasks.CountAsync();
+        var totalUsers = await _context.Users.CountAsync();
 
+        var pendingRequests = await _context.TaskRequests
+            .CountAsync(r => r.Status == RequestStatus.pending);
 
+        var toDo = await _context.Tasks.CountAsync(t => t.Status == TasksStatus.ToDo);
+        var inProgress = await _context.Tasks.CountAsync(t => t.Status == TasksStatus.InProgress);
+        var done = await _context.Tasks.CountAsync(t => t.Status == TasksStatus.Done);
 
-
-
-     public async   Task<object> GetAdminDashboard()
-        {
-            var totalProjects = await _Context.Projects.CountAsync();
-            var totalTasks = await _Context.Tasks.CountAsync();
-            var totalUsers = await _Context.Users.CountAsync();
-            var totalComments = await _Context.Comments.CountAsync();
-            var totalAttachment = await _Context.Attachments.CountAsync();
-
-
-            var pendingRequests = await _Context.TaskRequests
-                .CountAsync(r => r.Status == RequestStatus.pending);
-
-            var toDo = await _Context.Tasks
-                .CountAsync(t => t.Status == TasksStatus.ToDo);
-
-            var inProgress = await _Context.Tasks
-                .CountAsync(t => t.Status == TasksStatus.InProgress);
-
-            var done = await _Context.Tasks
-                .CountAsync(t => t.Status == TasksStatus.Done);
-
-            var recentActivity = await _Context.ActivityLogs
-                .OrderByDescending(a => a.CreatedAt)
-                .Take(5)
-                .Select(a => new
-                {
-                    a.Description,
-                    a.CreatedAt
-                })
-                .ToListAsync();
-
-            return new
+        var recentActivity = await _context.ActivityLogs
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(5)
+            .Select(a => new ActivityDTO
             {
-                totalProjects,
-                totalTasks,
-                totalUsers,
-                pendingRequests,
+                Description = a.Description,
+                CreatedAt = a.CreatedAt
+            })
+            .ToListAsync();
 
-                tasksStatus = new
-                {
-                    toDo,
-                    inProgress,
-                    done
-                },
-
-                recentActivity
-            };
-        }
-     public async Task<object> GetUserDashboard(ClaimsPrincipal User)
+        var result = new AdminDashboardDTO
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
+            TotalProjects = totalProjects,
+            TotalTasks = totalTasks,
+            TotalUsers = totalUsers,
+            PendingRequests = pendingRequests,
 
-            var myTasks = await _Context.Tasks
-                .CountAsync(t => t.AssignedUserId == userId);
-
-            var myPendingRequests = await _Context.TaskRequests
-                .CountAsync(r => r.UserId == userId && r.Status == RequestStatus.pending);
-            var myComments = await _Context.Comments
-                .CountAsync(c => c.UserId == userId);
-
-            var myToDo = await _Context.Tasks
-                .CountAsync(t => t.AssignedUserId == userId && t.Status == TasksStatus.ToDo);
-
-            var myInProgress = await _Context.Tasks
-                .CountAsync(t => t.AssignedUserId == userId && t.Status == TasksStatus.InProgress);
-
-            var myDone = await _Context.Tasks
-                .CountAsync(t => t.AssignedUserId == userId && t.Status == TasksStatus.Done);
-            var recentActivity = await _Context.ActivityLogs
-                .Where(a => a.UserId == userId)
-                .OrderByDescending(a => a.CreatedAt)
-                .Take(5)
-                .Select(a => new
-                {
-                    a.Description,
-                    a.CreatedAt
-                })
-                .ToListAsync();
-
-            return new
+            TasksStatus = new TasksStatusSummary
             {
-                myTasks,
-                myPendingRequests,
-                myComments,
+                ToDo = toDo,
+                InProgress = inProgress,
+                Done = done
+            },
 
-                myTasksStatus = new
-                {
-                    toDo = myToDo,
-                    inProgress = myInProgress,
-                    done = myDone
-                },
+            RecentActivity = recentActivity
+        };
 
-                recentActivity
-            };
-        }
+        return ServiceResponse<AdminDashboardDTO>
+            .SuccessResponse(result, "Admin dashboard loaded");
+    }
 
+    public async Task<ServiceResponse<UserDashboardDTO>> GetUserDashboard(ClaimsPrincipal user)
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+        if (string.IsNullOrEmpty(userId))
+            return ServiceResponse<UserDashboardDTO>.Fail("Unauthorized");
 
+        var myTasks = await _context.Tasks.CountAsync(t => t.AssignedUserId == userId);
+        var myPendingRequests = await _context.TaskRequests
+            .CountAsync(r => r.UserId == userId && r.Status == RequestStatus.pending);
 
+        var myComments = await _context.Comments.CountAsync(c => c.UserId == userId);
 
+        var myToDo = await _context.Tasks
+            .CountAsync(t => t.AssignedUserId == userId && t.Status == TasksStatus.ToDo);
 
+        var myInProgress = await _context.Tasks
+            .CountAsync(t => t.AssignedUserId == userId && t.Status == TasksStatus.InProgress);
 
+        var myDone = await _context.Tasks
+            .CountAsync(t => t.AssignedUserId == userId && t.Status == TasksStatus.Done);
 
+        var recentActivity = await _context.ActivityLogs
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(5)
+            .Select(a => new ActivityDTO
+            {
+                Description = a.Description,
+                CreatedAt = a.CreatedAt
+            })
+            .ToListAsync();
 
+        var result = new UserDashboardDTO
+        {
+            MyTasks = myTasks,
+            MyPendingRequests = myPendingRequests,
+            MyComments = myComments,
 
+            MyTasksStatus = new TasksStatusSummary
+            {
+                ToDo = myToDo,
+                InProgress = myInProgress,
+                Done = myDone
+            },
 
+            RecentActivity = recentActivity
+        };
 
-
-
-
-
-
-
-
-
+        return ServiceResponse<UserDashboardDTO>
+            .SuccessResponse(result, "User dashboard loaded");
     }
 }

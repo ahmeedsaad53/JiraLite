@@ -1,14 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using System.Security.Claims;
 
-namespace JiraLiteAPI.Service.AttachmentService
+public interface IAttachmentService
 {
-    public interface IAttachmentService
-    {
-        Task<object> UploadAttachment(int taskId, IFormFile file,ClaimsPrincipal User);
-        Task<object> GetAllFills(int taskId, ClaimsPrincipal User);
-        Task<object> DownloadAttachment(int id, ClaimsPrincipal User);
-        Task<object> DeleteAttachment(int id, ClaimsPrincipal User);
-        Task<object> GetAllAttachments(int page = 1, int pageSize = 10);
-    }
+    Task<ServiceResponse<string>> UploadAttachment(int taskId, IFormFile file, ClaimsPrincipal user);
+
+    Task<ServiceResponse<IEnumerable<AttachmentResponseDTO>>> GetAllFiles(int taskId, ClaimsPrincipal user);
+
+    Task<ServiceResponse<DownloadFileDTO>> DownloadAttachment(int id, ClaimsPrincipal user);
+
+    Task<ServiceResponse<string>> DeleteAttachment(int id, ClaimsPrincipal user);
 }

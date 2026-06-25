@@ -99,46 +99,53 @@ namespace JiraLiteAPI.Service.AccountService
             return ServiceResponse<AuthResponseDTO>.SuccessResponse(response);
         }
 
-        public async Task<ServiceResponse<object>> DeleteUser(string id)
+        public async Task<ServiceResponse<string>> DeleteUser(string id)
         {
             var user = await _context.Users.FindAsync(id);
 
             if (user == null)
-                return ServiceResponse<object>.Fail("User not found");
+                return ServiceResponse<string>.Fail("User not found");
 
             await _userManager.DeleteAsync(user);
 
-            return ServiceResponse<object>.SuccessResponse(new { id }, "Deleted successfully");
+            return ServiceResponse<string>.SuccessResponse("Deleted", "User deleted successfully");
         }
 
-        public async Task<ServiceResponse<List<object>>> GetAllUser()
+        public async Task<ServiceResponse<IEnumerable<UserResponseDTO>>> GetAllUser()
         {
             var users = await _context.Users
-                .Select(u => new
+                .Select(u => new UserResponseDTO
                 {
-                    u.Id,
-                    u.Email,
-                    u.UserName,
-                    u.PhoneNumber
-                }).ToListAsync<object>();
+                    Id = u.Id,
+                    Email = u.Email,
+                    UserName = u.UserName,
+                    PhoneNumber = u.PhoneNumber,
+                    FullName = u.FName + " " + u.LName
+                })
+                .ToListAsync();
 
-            return ServiceResponse<List<object>>.SuccessResponse(users);
+            return ServiceResponse<IEnumerable<UserResponseDTO>>
+                .SuccessResponse(users);
         }
 
-        public async Task<ServiceResponse<object>> GetById(string id)
+
+        public async Task<ServiceResponse<UserResponseDTO>> GetById(string id)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
-                return ServiceResponse<object>.Fail("User not found");
+                return ServiceResponse<UserResponseDTO>.Fail("User not found");
 
-            return ServiceResponse<object>.SuccessResponse(new
+            var result = new UserResponseDTO
             {
-                user.Id,
-                user.Email,
-                user.UserName,
-                user.PhoneNumber
-            });
+                Id = user.Id,
+                Email = user.Email,
+                UserName = user.UserName,
+                PhoneNumber = user.PhoneNumber,
+                FullName = user.FName + " " + user.LName
+            };
+
+            return ServiceResponse<UserResponseDTO>.SuccessResponse(result);
         }
 
         public async Task<ServiceResponse<string>> AssignRole(AssignRoleDTO dto)

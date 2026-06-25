@@ -2,15 +2,17 @@
 using JiraLiteAPI.DTO.Auth;
 using JiraLiteAPI.DTO.Common;
 
-namespace JiraLiteAPI.Service.AccountService
+public interface IAccountService
 {
-    public interface IAccountService
-    {
-        Task<ServiceResponse<string>> Register(RegisterDTO dto);
-        Task<ServiceResponse<AuthResponseDTO>> Login(LoginDTO dto);
-        Task<ServiceResponse<object>> DeleteUser(string id);
-        Task<ServiceResponse<List<object>>> GetAllUser();
-        Task<ServiceResponse<object>> GetById(string id);
-        Task<ServiceResponse<string>> AssignRole(AssignRoleDTO dto);
-    }
+    Task<ServiceResponse<string>> Register(RegisterDTO dto);
+
+    Task<ServiceResponse<AuthResponseDTO>> Login(LoginDTO dto);
+
+    Task<ServiceResponse<string>> DeleteUser(string id);
+
+    Task<ServiceResponse<IEnumerable<UserResponseDTO>>> GetAllUser();
+
+    Task<ServiceResponse<UserResponseDTO>> GetById(string id);
+
+    Task<ServiceResponse<string>> AssignRole(AssignRoleDTO dto);
 }

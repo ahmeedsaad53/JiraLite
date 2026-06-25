@@ -7,7 +7,7 @@ namespace JiraLiteAPI.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ProjectController : ControllerBase
+    public class ProjectController : BaseController
     {
         private readonly IProjectService _projectService;
 
@@ -18,14 +18,14 @@ namespace JiraLiteAPI.Controller
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AddNewProject(ProjectDTO dto)
+        public async Task<IActionResult> CreateProject(ProjectDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             var result = await _projectService.CreateProject(dto, User);
 
-            return Ok(result);
+            return HandleResponse(result);
         }
 
         [HttpGet]
@@ -33,7 +33,8 @@ namespace JiraLiteAPI.Controller
         public async Task<IActionResult> GetAllProjects()
         {
             var result = await _projectService.GetAllProjects(User);
-            return Ok(result);
+
+            return HandleResponse(result);
         }
 
         [HttpGet("{id:int}")]
@@ -41,19 +42,8 @@ namespace JiraLiteAPI.Controller
         public async Task<IActionResult> GetProjectById(int id)
         {
             var result = await _projectService.GetProjectById(id, User);
-            return Ok(result);
-        }
 
-        [HttpPatch("{id:int}")]
-        [Authorize]
-        public async Task<IActionResult> UpdateStatus(int id, UpdateProjectProgressDTO dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await _projectService.UpdateProjectStatus(id, dto, User);
-
-            return Ok(result);
+            return HandleResponse(result);
         }
 
         [HttpPut("{id:int}")]
@@ -65,15 +55,34 @@ namespace JiraLiteAPI.Controller
 
             var result = await _projectService.UpdateProject(id, dto);
 
-            return Ok(result);
+            return HandleResponse(result);
         }
 
+        [HttpPatch("{id:int}/status")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProjectStatus(int id, UpdateProjectProgressDTO dto)
+        {
+            var result = await _projectService.UpdateProjectStatus(id, dto, User);
+
+            return HandleResponse(result);
+        }
+     
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProject(int id)
         {
             var result = await _projectService.DeleteProject(id);
-            return Ok(result);
+
+            return HandleResponse(result);
         }
+
+
+
+
+
+
+
     }
 }
+
+

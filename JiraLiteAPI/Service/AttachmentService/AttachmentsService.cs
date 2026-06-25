@@ -1,7 +1,8 @@
-﻿using Humanizer;
-using JiraLiteAPI.Data.Models;
+﻿  using Humanizer;
 using JiraLiteAPI.Data.Context;
+using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using JiraLiteAPI.Enum;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -17,264 +18,158 @@ namespace JiraLiteAPI.Service.AttachmentService
     {
 
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly AppDbContext _Context;
+        private readonly AppDbContext _context;
         public AttachmentsService(UserManager<ApplicationUser> userManager, AppDbContext context)
         {
             _userManager = userManager;
-            _Context = context;
+            _context = context;
         }
 
-       public async Task<object> UploadAttachment(int taskId, IFormFile file, ClaimsPrincipal User)
+        public async Task<ServiceResponse<string>> UploadAttachment(int taskId, IFormFile file, ClaimsPrincipal user)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            //  Validate file
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<string>.Fail("Unauthorized");
+
             if (file == null || file.Length == 0)
-                throw new Exception("No file uploaded");
+                return ServiceResponse<string>.Fail("No file uploaded");
 
             if (file.Length > 5 * 1024 * 1024)
-                throw new Exception("File too large");
+                return ServiceResponse<string>.Fail("File too large");
 
-            var allowedExtensions = new[] { ".jpg", ".png", ".pdf", ".docx" };
-            var extension = Path.GetExtension(file.FileName).ToLower();
+            var allowed = new[] { ".jpg", ".png", ".pdf", ".docx" };
+            var ext = Path.GetExtension(file.FileName).ToLower();
 
-            if (!allowedExtensions.Contains(extension))
-                throw new Exception("File type not allowed");
+            if (!allowed.Contains(ext))
+                return ServiceResponse<string>.Fail("File type not allowed");
 
-            //  Check task
-            var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+            var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+
             if (task == null)
-                throw new KeyNotFoundException ("Task not found");
+                return ServiceResponse<string>.Fail("Task not found");
 
-            //  Check membership
-
-            var isMember = await _Context.ProjectUsers
+            var isMember = await _context.ProjectUsers
                 .AnyAsync(p => p.ProjectId == task.ProjectId && p.UserId == userId);
 
             if (!isMember)
-                throw new UnauthorizedAccessException ();
+                return ServiceResponse<string>.Fail("Forbidden");
 
+            try  {
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "../UploadedFiles");
 
-            //  Prepare folder
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                if (!Directory.Exists(uploadPath))
+                    Directory.CreateDirectory(uploadPath);
 
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
+                var uniqueName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                var filePath = Path.Combine(uploadPath, uniqueName);
 
-            //  Safe + unique file name
-            var safeFileName = Path.GetFileName(file.FileName);
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + safeFileName;
-
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            //  Save file
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            //  Save in DB
-            var attachment = new Attachment
-            {
-                TaskId = taskId,
-                FileName = safeFileName,
-                FilePath = "/uploads/" + uniqueFileName,
-                UploadedByUserId = userId,
-                UploadAt = DateTime.UtcNow
-            };
-
-            _Context.Attachments.Add(attachment);
-            _Context.ActivityLogs.Add(new ActivityLog
-            {
-                TaskId = task.Id,
-                UserId = userId,
-                Action = ActivityType.UploadFile,
-                Description = $"User {userId} Upload File To {task.Title} ",
-                CreatedAt = DateTime.UtcNow
-            });
-            await _Context.SaveChangesAsync();
-
-            return new
-            {
-                message = "File uploaded successfully",
-                attachmentId = attachment.Id,
-                fileUrl = attachment.FilePath
-            };
-        }
-       public async Task<object> GetAllFills(int taskId, ClaimsPrincipal User)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) throw new UnauthorizedAccessException();
-            var task = _Context.Tasks.FirstOrDefault(t => t.Id == taskId);
-            if (task == null)
-                throw new KeyNotFoundException("Task Not Found");
-            if (!User.IsInRole("Admin"))
-            {
-                var isMember = await _Context.ProjectUsers.AnyAsync(p => p.ProjectId == task.ProjectId && p.UserId == userId);
-                if (!isMember) throw new UnauthorizedAccessException();
-            }
-            var attachments = await _Context.Attachments.Where(a => a.TaskId == taskId).Select(a => new
-            {
-                a.Id,
-                a.FileName,
-                a.FilePath,
-                a.UploadAt,
-                UploadBy = a.UploadedByUser == null ? null : new
+                using (var stream = new FileStream(filePath, FileMode.Create))
                 {
-                    a.UploadedByUser.Id,
-                    FullName = (a.UploadedByUser.FName ?? "") + " " + (a.UploadedByUser.LName ?? "")
+                    await file.CopyToAsync(stream);
                 }
-            }).ToListAsync();
-            return attachments;
-        }
-       public async Task<object> DownloadAttachment(int id, ClaimsPrincipal User)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
 
-            var attachment = await _Context.Attachments.Where(a => a.Id == id).FirstOrDefaultAsync();
+                var fileUrl = $"files/{uniqueName}";
 
-
-            if (attachment == null)
-                throw new KeyNotFoundException("Attachment not found");
-
-            if (!User.IsInRole("Admin"))
-            {
-                var isMember = await _Context.ProjectUsers
-                    .AnyAsync(p =>
-                        p.ProjectId == attachment.Task.ProjectId &&
-                        p.UserId == userId);
-
-                if (!isMember)
-                    throw new UnauthorizedAccessException();
-            }
-
-            //  Build full file path
-            var filePath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                attachment.FilePath.TrimStart('/')
-            );
-
-            //  Check file exists on disk
-            if (!System.IO.File.Exists(filePath))
-                throw new KeyNotFoundException("File not found on server");
-
-            //  Get file bytes
-            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-
-            //  Return file
-            return new
-            {
-                FileBytes = fileBytes,
-                FileName = attachment.FileName,
-                ContentType = "application/octet-stream"
-            };
-        }
-       public async Task<object> DeleteAttachment(int id, ClaimsPrincipal User)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
-
-            var attachment = await _Context.Attachments.Where(a => a.Id == id).FirstOrDefaultAsync();
-
-
-            if (attachment == null)
-               throw new KeyNotFoundException("Attachment not found");
-            var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == attachment.TaskId);
-            if (task == null) throw new KeyNotFoundException("Task Not Found");
-
-            if (!User.IsInRole("Admin"))
-            {
-                var isMember = await _Context.ProjectUsers
-                    .AnyAsync(p =>
-                        p.ProjectId == attachment.Task.ProjectId &&
-                        p.UserId == userId);
-
-                if (!isMember)
-                    throw new UnauthorizedAccessException();
-
-                //  Only uploader or admin can delete
-                if (attachment.UploadedByUserId != userId)
-                    throw new UnauthorizedAccessException();
-            }
-
-            // Delete file from disk
-            var filePath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                attachment.FilePath.TrimStart('/')
-            );
-
-            if (System.IO.File.Exists(filePath))
-                System.IO.File.Delete(filePath);
-
-            _Context.Attachments.Remove(attachment);
-            _Context.ActivityLogs.Add(new ActivityLog
-            {
-                TaskId = task.Id,
-                UserId = userId,
-                Action = ActivityType.DeletedFile,
-                Description = $"User {userId} Delete File From {task.Title} ",
-                CreatedAt = DateTime.UtcNow
-            });
-            await _Context.SaveChangesAsync();
-
-            return new
-            {
-                message = "Attachment deleted successfully",
-                attachmentId = id
-            };
-        }
-       public async Task<object> GetAllAttachments(int page = 1, int pageSize = 10)
-        {
-            if (page < 1) page = 1;
-            if (pageSize > 50) pageSize = 50;
-
-            var query = _Context.Attachments.AsQueryable();
-
-            var totalCount = await query.CountAsync();
-
-            var attachments = await query
-                .OrderByDescending(a => a.UploadAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(a => new
+                var attachment = new Attachment
                 {
-                    a.Id,
-                    a.FileName,
-                    a.FilePath,
-                    a.UploadAt,
+                    TaskId = taskId,
+                    FileName = file.FileName,
+                    FilePath = fileUrl,
+                    UploadedByUserId = userId,
+                    UploadAt = DateTime.UtcNow
+                };
 
-                    Task = a.Task == null ? null : new
-                    {
-                        a.Task.Id,
-                        a.Task.Title
-                    },
+                _context.Attachments.Add(attachment);
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    TaskId = task.Id,
+                    UserId = userId,
+                    Action = ActivityType.UploadFile,
+                    Description = $"User {userId} Upload File To {task.Title} ",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
 
-                    UploadedBy = a.UploadedByUser == null ? null : new
-                    {
-                        a.UploadedByUser.Id,
-                        FullName = (a.UploadedByUser.FName ?? "") + " " + (a.UploadedByUser.LName ?? "")
-                    }
+                return ServiceResponse<string>.SuccessResponse(fileUrl, "File uploaded successfully");
+                }
+            catch (Exception ex)
+                {
+                return ServiceResponse<string>.Fail("Upload failed", new List<string> { ex.Message });
+                }
+        }
+
+
+       
+
+
+        
+        public async Task<ServiceResponse<IEnumerable<AttachmentResponseDTO>>> GetAllFiles(int taskId, ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<IEnumerable<AttachmentResponseDTO>>.Fail("Unauthorized");
+
+            var files = await _context.Attachments
+                .Include(a => a.UploadedByUser)
+                .Where(a => a.TaskId == taskId)
+                .Select(a => new AttachmentResponseDTO
+                {
+                    Id = a.Id,
+                    FileName = a.FileName,
+                    FileUrl = a.FilePath,
+                    UploadAt = a.UploadAt,
+                    UploadedByName = a.UploadedByUser == null
+                        ? ""
+                        : a.UploadedByUser.FName + " " + a.UploadedByUser.LName
                 })
                 .ToListAsync();
 
-            return new
-            {
-                page,
-                pageSize,
-                totalCount,
-                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                data = attachments
-            };
+            return ServiceResponse<IEnumerable<AttachmentResponseDTO>>
+                .SuccessResponse(files);
         }
+        public async Task<ServiceResponse<DownloadFileDTO>> DownloadAttachment(int id, ClaimsPrincipal user)
+        {
+            var attachment = await _context.Attachments.FirstOrDefaultAsync(a => a.Id == id);
 
+            if (attachment == null)
+                return ServiceResponse<DownloadFileDTO>.Fail("Not found");
 
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "../UploadedFiles");
+
+            var fullPath = Path.Combine(uploadPath, attachment.FilePath.Replace("files/", ""));
+
+            if (!File.Exists(fullPath))
+                return ServiceResponse<DownloadFileDTO>.Fail("File missing");
+
+            var bytes = await File.ReadAllBytesAsync(fullPath);
+
+            return ServiceResponse<DownloadFileDTO>.SuccessResponse(new DownloadFileDTO
+            {
+                FileBytes = bytes,
+                FileName = attachment.FileName,
+                ContentType = "application/octet-stream"
+            });
+        }
+        public async Task<ServiceResponse<string>> DeleteAttachment(int id, ClaimsPrincipal user)
+        {
+            var attachment = await _context.Attachments.FirstOrDefaultAsync(a => a.Id == id);
+
+            if (attachment == null)
+                return ServiceResponse<string>.Fail("Not found");
+
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "../UploadedFiles");
+            var fullPath = Path.Combine(uploadPath, attachment.FilePath.Replace("files/", ""));
+
+            if (File.Exists(fullPath))
+                File.Delete(fullPath);
+
+            _context.Attachments.Remove(attachment);
+            await _context.SaveChangesAsync();
+
+            return ServiceResponse<string>.SuccessResponse("Deleted", "File removed");
+        }
 
 
 

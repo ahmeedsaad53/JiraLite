@@ -1,6 +1,7 @@
 ﻿using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using JiraLiteAPI.Enum;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,49 +11,50 @@ using System.Security.Claims;
 
 namespace JiraLiteAPI.Service.CommentSernice
 {
-    public class CommentsService:ICommentService
+    public class CommentsService : ICommentService
     {
-        private readonly AppDbContext _Context;
+        private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public CommentsService(AppDbContext context, UserManager<ApplicationUser> userManager)
         {
-            _Context = context;
+            _context = context;
             _userManager = userManager;
 
         }
 
-        public async  Task<object> MakeANewComment(CommentDTO commentDTO, ClaimsPrincipal User)
+        public async Task<ServiceResponse<string>> MakeANewComment(CommentDTO dto, ClaimsPrincipal user)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-         
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<string>.Fail("Unauthorized");
 
-            var task = await _Context.Tasks
-                 .FirstOrDefaultAsync(t => t.Id == commentDTO.TaskId);
+            var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == dto.TaskId);
+
             if (task == null)
-                throw new KeyNotFoundException("Task Not Found");
+                return ServiceResponse<string>.Fail("Task not found");
 
-            if (!User.IsInRole("Admin"))
+            if (!user.IsInRole("Admin"))
             {
-                var isMember = await _Context.ProjectUsers
-                    .AnyAsync(pu => pu.ProjectId == task.ProjectId && pu.UserId == userId);
+                var isMember = await _context.ProjectUsers
+                    .AnyAsync(p => p.ProjectId == task.ProjectId && p.UserId == userId);
 
                 if (!isMember)
-                    throw new UnauthorizedAccessException();
+                    return ServiceResponse<string>.Fail("Forbidden");
             }
 
             var comment = new Comment
             {
-                Content = commentDTO.Content,
-                TaskId = commentDTO.TaskId,
-                CreatedAt = DateTime.Now,
+                Content = dto.Content,
+                TaskId = dto.TaskId,
+                CreatedAt = DateTime.UtcNow,
                 UserId = userId
             };
-            await _Context.Comments.AddAsync(comment);
-            _Context.ActivityLogs.Add(new ActivityLog
+
+            _context.Comments.Add(comment);
+
+            _context.ActivityLogs.Add(new ActivityLog
             {
                 TaskId = comment.TaskId,
                 UserId = userId,
@@ -61,116 +63,78 @@ namespace JiraLiteAPI.Service.CommentSernice
                 CreatedAt = DateTime.UtcNow
             });
 
-            await _Context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-
-            return  $"Comment added" ;
+            return ServiceResponse<string>.SuccessResponse("Created", "Comment added successfully");
         }
 
 
 
-
-
-
-       public async Task<object> GetComments(int? taskId, ClaimsPrincipal User, int page = 1, int pageSize = 10)
+        public async Task<ServiceResponse<PaginatedResponseDTO<CommentResponseDTO>>> GetComments(int? taskId, ClaimsPrincipal user, int page, int pageSize)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
-            if (taskId.HasValue)
-            {
-                var task = await _Context.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                if (task == null)
-                    throw new KeyNotFoundException("Task not found");
-
-                if (!User.IsInRole("Admin"))
-                {
-                    var isMember = await _Context.ProjectUsers
-                        .AnyAsync(p => p.ProjectId == task.ProjectId && p.UserId == userId);
-
-                    if (!isMember)
-                        throw new UnauthorizedAccessException();
-                }
-            }
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<PaginatedResponseDTO<CommentResponseDTO>>.Fail("Unauthorized");
 
             if (page < 1) page = 1;
             if (pageSize > 50) pageSize = 50;
 
-            var query = _Context.Comments.AsQueryable();
+            var query = _context.Comments.Include(c => c.User).Include(c => c.Task).AsQueryable();
 
-
-            // Filter by task
             if (taskId.HasValue)
-                query = query.Where(r => r.TaskId == taskId);
+                query = query.Where(c => c.TaskId == taskId);
 
-            // Total count
-            var totalCount = await query.CountAsync();
+            var total = await query.CountAsync();
 
-            //  Pagination + sorting
-            var comment = await query
-                .OrderByDescending(r => r.CreatedAt)
+            var comments = await query
+                .OrderByDescending(c => c.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(r => new
+                .Select(c => new CommentResponseDTO
                 {
-                    r.Id,
-                    r.Content,
-                    r.CreatedAt,
-                    r.UserId,
-                    User = r.User == null ? null : new
-                    {
-                        FullName = (r.User.FName ?? "") + " " + (r.User.LName ?? "")
-                    },
-
-                    Task = r.Task == null ? null : new
-                    {
-                        r.Task.Id,
-                        r.Task.Title
-                    }
-
-
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    UserFullName = c.User == null ? "" : $"{c.User.FName} {c.User.LName}",
+                    TaskId = c.TaskId,
+                    TaskTitle = c.Task == null ? "" : c.Task.Title
                 })
                 .ToListAsync();
 
-            return new
+            var result = new PaginatedResponseDTO<CommentResponseDTO>
             {
-                page,
-                pageSize,
-                totalCount,
-                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                data = comment
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize),
+                Data = comments
             };
+
+            return ServiceResponse<PaginatedResponseDTO<CommentResponseDTO>>
+                .SuccessResponse(result);
         }
 
-
-        public async Task<object> DeleteComment(int CommentId, ClaimsPrincipal User)
+        public async Task<ServiceResponse<string>> DeleteComment(int commentId, ClaimsPrincipal user)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
-            var comment = await _Context.Comments
-               .Include(c => c.Task)
-               .FirstOrDefaultAsync(t => t.Id == CommentId);
-            if (comment == null) throw new KeyNotFoundException("Comment not found");
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<string>.Fail("Unauthorized");
 
-            if (!User.IsInRole("Admin"))
-            {
-                var isMember = await _Context.ProjectUsers
-                    .AnyAsync(pu => pu.UserId == userId && pu.ProjectId == comment.Task.ProjectId);
+            var comment = await _context.Comments
+                .Include(c => c.Task)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
 
-                if (!isMember)
-                    throw new UnauthorizedAccessException();
-            }
+            if (comment == null)
+                return ServiceResponse<string>.Fail("Comment not found");
 
-            if (!User.IsInRole("Admin") && comment.UserId != userId)
-                throw new UnauthorizedAccessException();
+            if (!user.IsInRole("Admin") && comment.UserId != userId)
+                return ServiceResponse<string>.Fail("Forbidden");
             var CommentVaule = comment.TaskId;
             var CommentContent = comment.Content;
-            _Context.Comments.Remove(comment);
-
-            _Context.ActivityLogs.Add(new ActivityLog
+            _context.Comments.Remove(comment);
+            _context.ActivityLogs.Add(new ActivityLog
             {
                 TaskId = CommentVaule,
                 UserId = userId,
@@ -178,75 +142,53 @@ namespace JiraLiteAPI.Service.CommentSernice
                 Description = $"User deleted comment: {CommentContent}",
                 CreatedAt = DateTime.UtcNow
             });
-            await _Context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-            return new
-            {
-                message = "Comment deleted successfully",
-                Comment = comment
-            };
-
+            return ServiceResponse<string>.SuccessResponse("Deleted", "Comment deleted");
         }
-
-        public async   Task<object> GetMyComment(ClaimsPrincipal User)
+        public async Task<ServiceResponse<IEnumerable<CommentResponseDTO>>> GetMyComment(ClaimsPrincipal user)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (userId == null)
-                throw new UnauthorizedAccessException();
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<IEnumerable<CommentResponseDTO>>.Fail("Unauthorized");
 
-            var comments = await _Context.Comments
-
-               .Where(r => r.UserId == userId)
-               .Select(r => new
-               {
-                   r.Id,
-                   r.Content,
-                   r.CreatedAt,
-                   r.TaskId,
-
-
-                   Task = r.Task == null ? null : new
-                   {
-                       r.Task.Id,
-                       Title = r.Task.Title,
-                       Status = r.Task.Status,
-                       Deadline = r.Task.Deadline
-                   }
-               })
+            var comments = await _context.Comments
+                .Include(c => c.Task)
+                .Where(c => c.UserId == userId)
+                .Select(c => new CommentResponseDTO
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    TaskId = c.TaskId,
+                    TaskTitle = c.Task == null ? "" : c.Task.Title
+                })
                 .ToListAsync();
 
-            return comments;
+            return ServiceResponse<IEnumerable<CommentResponseDTO>>
+                .SuccessResponse(comments);
         }
 
 
 
-
-
-        public async Task<object> EditComment(int CommentId, EditCommentDTO dto, ClaimsPrincipal User)
+        public async Task<ServiceResponse<string>> EditComment(int commentId, EditCommentDTO dto, ClaimsPrincipal user)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                throw new UnauthorizedAccessException();
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (!User.IsInRole("Admin"))
-            {
-                var isMember = await _Context.Comments
-                    .AnyAsync(pu => pu.UserId == userId && pu.Id == CommentId);
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<string>.Fail("Unauthorized");
 
-                if (!isMember)
-                    throw new UnauthorizedAccessException();
-            }
-            var comment = await _Context.Comments.FirstOrDefaultAsync(t => t.Id == CommentId);
-            if (comment == null) throw new KeyNotFoundException("Comment not found");
+            var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
 
+            if (comment == null)
+                return ServiceResponse<string>.Fail("Comment not found");
 
-            if (!User.IsInRole("Admin") && comment.UserId != userId)
-                throw new UnauthorizedAccessException();
+            if (!user.IsInRole("Admin") && comment.UserId != userId)
+                return ServiceResponse<string>.Fail("Forbidden");
 
             comment.Content = dto.Content;
-
-            _Context.ActivityLogs.Add(new ActivityLog
+            _context.ActivityLogs.Add(new ActivityLog
             {
                 TaskId = comment.TaskId,
                 UserId = userId,
@@ -254,46 +196,48 @@ namespace JiraLiteAPI.Service.CommentSernice
                 Description = $"User Edited the  comment Id{comment.Id} from task{comment.TaskId} ",
                 CreatedAt = DateTime.UtcNow
             });
-            await _Context.SaveChangesAsync();
 
+            await _context.SaveChangesAsync();
 
-            return new
-            {
-                message = "Comment Edited  successfully",
-                Comment = comment
-            };
+            return ServiceResponse<string>.SuccessResponse("Updated", "Comment updated");
+
 
         }
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }
 
     }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  

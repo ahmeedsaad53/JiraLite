@@ -1,10 +1,11 @@
 ﻿using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using JiraLiteAPI.Enum;
-using JiraLiteAPI.Service.PService;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+
 namespace JiraLiteAPI.Service.PService
 {
     public class ProjectService : IProjectService
@@ -16,15 +17,16 @@ namespace JiraLiteAPI.Service.PService
             _context = context;
         }
 
-        public async Task<object> CreateProject(ProjectDTO dto, ClaimsPrincipal user)
+
+        public async Task<ServiceResponse<ProjectResponseDTO>> CreateProject(ProjectDTO dto, ClaimsPrincipal user)
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedAccessException();
+                return ServiceResponse<ProjectResponseDTO>.Fail("Unauthorized");
 
             if (dto.DeadLine < DateOnly.FromDateTime(DateTime.UtcNow))
-                throw new Exception("Deadline must be in the future");
+                return ServiceResponse<ProjectResponseDTO>.Fail("Deadline must be in the future");
 
             var project = new Project
             {
@@ -39,121 +41,122 @@ namespace JiraLiteAPI.Service.PService
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            return new
-            {
-                message = "Project created successfully",
-                projectId = project.Id
-            };
+            return ServiceResponse<ProjectResponseDTO>.SuccessResponse(
+                new ProjectResponseDTO
+                {
+                    Id = project.Id,
+                    Name = project.Name,
+                    Description = project.Description,
+                    DeadLine = project.DeadLine,
+                    Status = project.Status,
+                    CreatedOn = project.CreatedOn,
+                },
+                "Project created successfully"
+            );
         }
 
-        public async Task<object> GetAllProjects(ClaimsPrincipal user)
+        public async Task<ServiceResponse<IEnumerable<ProjectResponseDTO>>> GetAllProjects(ClaimsPrincipal user)
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedAccessException();
+                return ServiceResponse<IEnumerable<ProjectResponseDTO>>.Fail("Unauthorized");
+
+            List<ProjectResponseDTO> result;
 
             if (user.IsInRole("Admin"))
             {
-                return await _context.Projects
+                result = await _context.Projects
+                    .Join(_context.Users,
+                        p => p.CreatedBy,
+                        u => u.Id,
+                        (p, u) => new ProjectResponseDTO
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            Description = p.Description,
+                            CreatedOn = p.CreatedOn,
+                            DeadLine = p.DeadLine,
+                            Status = p.Status,
+                            CreatedByName = (u.FName ?? "") + " " + (u.LName ?? "")
+                        })
                     .OrderByDescending(p => p.CreatedOn)
-                    .Join(_context.Users, p => p.CreatedBy, u => u.Id, (p, u) => new
-                    {
-                        p.Id,
-                        p.Name,
-                        p.Description,
-                        CreatedByName = (u.FName ?? "") + " " + (u.LName ?? ""),
-                        p.CreatedOn,
-                        p.DeadLine,
-                        p.Status
-                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                result = await _context.ProjectUsers
+                    .Where(pu => pu.UserId == userId)
+                    .SelectMany(pu => _context.Projects
+                        .Where(p => p.Id == pu.ProjectId)
+                        .Join(_context.Users,
+                            p => p.CreatedBy,
+                            u => u.Id,
+                            (p, u) => new ProjectResponseDTO
+                            {
+                                Id = p.Id,
+                                Name = p.Name,
+                                Description = p.Description,
+                                CreatedOn = p.CreatedOn,
+                                DeadLine = p.DeadLine,
+                                Status = p.Status,
+                                CreatedByName = (u.FName ?? "") + " " + (u.LName ?? "")
+                            }))
+                    .OrderByDescending(p => p.CreatedOn)
                     .ToListAsync();
             }
 
-            return await _context.ProjectUsers
-                .Where(pu => pu.UserId == userId)
-                .Select(pu => new
-                {
-                    pu.Project.Id,
-                    pu.Project.Name,
-                    pu.Project.Description,
-                    pu.Project.CreatedOn,
-                    pu.Project.DeadLine,
-                    pu.Project.Status
-                })
-                .ToListAsync();
+            return ServiceResponse<IEnumerable<ProjectResponseDTO>>
+                .SuccessResponse(result, "Projects retrieved");
         }
 
-        public async Task<object> GetProjectById(int id, ClaimsPrincipal user)
+        public async Task<ServiceResponse<ProjectResponseDTO>> GetProjectById(int id, ClaimsPrincipal user)
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedAccessException();
+                return ServiceResponse<ProjectResponseDTO>.Fail("Unauthorized");
 
             if (!user.IsInRole("Admin"))
             {
                 var isMember = await _context.ProjectUsers
-                    .AnyAsync(pu => pu.ProjectId == id && pu.UserId == userId);
+                    .AnyAsync(p => p.ProjectId == id && p.UserId == userId);
 
                 if (!isMember)
-                    throw new UnauthorizedAccessException();
+                    return ServiceResponse<ProjectResponseDTO>.Fail("Forbidden");
             }
 
             var project = await _context.Projects
-                .Join(_context.Users, p => p.CreatedBy, u => u.Id, (p, u) => new
-                {
-                    p.Id,
-                    p.Name,
-                    p.Description,
-                    p.CreatedOn,
-                    p.DeadLine,
-                    CreatedByName = (u.FName ?? "") + " " + (u.LName ?? ""),
-                    p.Status
-                })
+                .Join(_context.Users,
+                    p => p.CreatedBy,
+                    u => u.Id,
+                    (p, u) => new ProjectResponseDTO
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        CreatedOn = p.CreatedOn,
+                        DeadLine = p.DeadLine,
+                        Status = p.Status,
+                        CreatedByName = (u.FName ?? "") + " " + (u.LName ?? "")
+                    })
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
-                throw new Exception("Project not found");
+                return ServiceResponse<ProjectResponseDTO>.Fail("Project not found");
 
-            return project;
+            return ServiceResponse<ProjectResponseDTO>.SuccessResponse(project);
         }
 
-        public async Task<string> UpdateProjectStatus(int id, UpdateProjectProgressDTO dto, ClaimsPrincipal user)
+        public async Task<ServiceResponse<string>> UpdateProject(int id, EditProjectDTO dto)
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
-                throw new Exception("Project not found");
-
-            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!user.IsInRole("Admin"))
-            {
-                var isMember = await _context.ProjectUsers
-                    .AnyAsync(pu => pu.ProjectId == id && pu.UserId == userId);
-
-                if (!isMember)
-                    throw new UnauthorizedAccessException();
-            }
-
-            project.Status = dto.ProjectStatus;
-            project.Description = dto.Description;
-
-            await _context.SaveChangesAsync();
-
-            return "Project status updated successfully";
-        }
-
-        public async Task<string> UpdateProject(int id, EditProjectDTO dto)
-        {
-            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
-
-            if (project == null)
-                throw new Exception("Project not found");
+                return ServiceResponse<string>.Fail("Project not found");
 
             if (dto.DeadLine < DateOnly.FromDateTime(DateTime.UtcNow))
-                throw new Exception("Deadline must be in the future");
+                return ServiceResponse<string>.Fail("Deadline must be in the future");
 
             project.Name = dto.Name;
             project.Description = dto.Description;
@@ -162,24 +165,46 @@ namespace JiraLiteAPI.Service.PService
 
             await _context.SaveChangesAsync();
 
-            return "Project updated successfully";
+            return ServiceResponse<string>.SuccessResponse("Updated", "Project updated successfully");
         }
 
-        public async Task<object> DeleteProject(int id)
+        public async Task<ServiceResponse<string>> UpdateProjectStatus(int id, UpdateProjectProgressDTO dto, ClaimsPrincipal user)
         {
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
-                throw new Exception("Project not found");
+                return ServiceResponse<string>.Fail("Project not found");
+
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!user.IsInRole("Admin"))
+            {
+                var isMember = await _context.ProjectUsers
+                    .AnyAsync(p => p.ProjectId == id && p.UserId == userId);
+
+                if (!isMember)
+                    return ServiceResponse<string>.Fail("Forbidden");
+            }
+
+            project.Status = dto.ProjectStatus;
+            project.Description = dto.Description;
+
+            await _context.SaveChangesAsync();
+
+            return ServiceResponse<string>.SuccessResponse("Updated", "Status updated successfully");
+        }
+
+        public async Task<ServiceResponse<string>> DeleteProject(int id)
+        {
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
+
+            if (project == null)
+                return ServiceResponse<string>.Fail("Project not found");
 
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
 
-            return new
-            {
-                message = "Project deleted successfully",
-                projectId = id
-            };
+            return ServiceResponse<string>.SuccessResponse("Deleted", "Project deleted successfully");
         }
     }
 }

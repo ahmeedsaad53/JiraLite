@@ -1,11 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using System.Security.Claims;
 
-namespace JiraLiteAPI.Service.DashBoardService
+public interface IDashBoardService
 {
-    public interface IDashBoardService
-    {
-        Task<object> GetAdminDashboard();
-        Task<object> GetUserDashboard(ClaimsPrincipal User);
-    }
+    Task<ServiceResponse<AdminDashboardDTO>> GetAdminDashboard();
+
+    Task<ServiceResponse<UserDashboardDTO>> GetUserDashboard(ClaimsPrincipal user);
 }

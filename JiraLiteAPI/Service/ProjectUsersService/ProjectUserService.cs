@@ -1,6 +1,7 @@
 ﻿using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -8,36 +9,35 @@ using System.Security.Claims;
 
 namespace JiraLiteAPI.Service.ProjectUsersService
 {
-    public class ProjectUserService: IProjectUserService
+    public class ProjectUserService : IProjectUserService
     {
-        private readonly AppDbContext _Context;
+        private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public ProjectUserService(AppDbContext context, UserManager<ApplicationUser> userManager)
         {
-            _Context = context;
+            _context = context;
             _userManager = userManager;
-
         }
-        // add user to project
-        public async Task<object> AddUser(string userId,  AddUserToProjectDTO dto)
+
+        public async Task<ServiceResponse<string>> AddUser(string userId, AddUserToProjectDTO dto)
         {
-
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-                throw new KeyNotFoundException("User not found");
 
-            var project = await _Context.Projects
+            if (user == null)
+                return ServiceResponse<string>.Fail("User not found");
+
+            var project = await _context.Projects
                 .FirstOrDefaultAsync(p => p.Id == dto.ProjectId);
 
             if (project == null)
-                throw new Exception("Project not found");
+                return ServiceResponse<string>.Fail("Project not found");
 
-            var exists = await _Context.ProjectUsers
-                .AnyAsync(pu => pu.UserId == userId && pu.ProjectId == dto.ProjectId);
+            var exists = await _context.ProjectUsers
+                .AnyAsync(p => p.UserId == userId && p.ProjectId == dto.ProjectId);
 
             if (exists)
-                throw new Exception ("User already in project");
+                return ServiceResponse<string>.Fail("User already in project");
 
             var userProject = new ProjectUser
             {
@@ -45,85 +45,63 @@ namespace JiraLiteAPI.Service.ProjectUsersService
                 ProjectId = dto.ProjectId
             };
 
-            _Context.ProjectUsers.Add(userProject);
-            await _Context.SaveChangesAsync();
+            _context.ProjectUsers.Add(userProject);
+            await _context.SaveChangesAsync();
 
-            return new
-            {
-                message = "User added to project successfully",
-                userId = userId,
-                projectId = dto.ProjectId
-            };
+            return ServiceResponse<string>.SuccessResponse(
+                "Added",
+                "User added to project successfully"
+            );
         }
 
-
-
-        // delete user from project 
-        public async Task<object> DeleteUserFromProject(int projectId, string userId)
+        public async Task<ServiceResponse<string>> DeleteUserFromProject(int projectId, string userId)
         {
-            var user = await _Context.ProjectUsers.FirstOrDefaultAsync(p => p.UserId == userId && p.ProjectId == projectId);
-            if (user == null)throw new Exception ("User Not Found");
-            _Context.ProjectUsers.Remove(user);
-            await _Context.SaveChangesAsync();
-            return new
-            {
-                message = "User deleted successfully",
-                UserId = userId,
-                projectId
-            };
+            var user = await _context.ProjectUsers
+                .FirstOrDefaultAsync(p => p.UserId == userId && p.ProjectId == projectId);
+
+            if (user == null)
+                return ServiceResponse<string>.Fail("User not found in project");
+
+            _context.ProjectUsers.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return ServiceResponse<string>.SuccessResponse(
+                "Deleted",
+                "User removed from project"
+            );
         }
 
-
-        //get all user for project 
-        public async Task<object> GetAllUser(int projectId, ClaimsPrincipal User)
+        public async Task<ServiceResponse<IEnumerable<ProjectUserResponseDTO>>> GetAllUser(int projectId, ClaimsPrincipal user)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (userId == null)
-                throw new UnauthorizedAccessException();
+            if (string.IsNullOrEmpty(userId))
+                return ServiceResponse<IEnumerable<ProjectUserResponseDTO>>.Fail("Unauthorized");
 
-            if (!User.IsInRole("Admin"))
+            if (!user.IsInRole("Admin"))
             {
-                var isMember = await _Context.ProjectUsers
-                    .AnyAsync(pu => pu.ProjectId == projectId && pu.UserId == userId);
+                var isMember = await _context.ProjectUsers
+                    .AnyAsync(p => p.ProjectId == projectId && p.UserId == userId);
 
                 if (!isMember)
-                    throw new UnauthorizedAccessException();
+                    return ServiceResponse<IEnumerable<ProjectUserResponseDTO>>.Fail("Forbidden");
             }
 
-            var ProjectUsers = await _Context.ProjectUsers.Where(p => p.ProjectId == projectId).Join(_Context.Users,
-                pu => pu.UserId,
-                u => u.Id,
-                (pu, u) => new
-                {
-                    u.Id,
-                    FullName = (u.FName ?? "") + " " + (u.LName ?? "")
-                }).ToListAsync();
-            return ProjectUsers;
+            var users = await _context.ProjectUsers
+                .Where(p => p.ProjectId == projectId)
+                .Join(_context.Users,
+                    pu => pu.UserId,
+                    u => u.Id,
+                    (pu, u) => new ProjectUserResponseDTO
+                    {
+                        UserId = u.Id,
+                        FullName = (u.FName ?? "") + " " + (u.LName ?? "")
+                    })
+                .ToListAsync();
+
+            return ServiceResponse<IEnumerable<ProjectUserResponseDTO>>
+                .SuccessResponse(users, "Users retrieved");
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -134,4 +112,7 @@ namespace JiraLiteAPI.Service.ProjectUsersService
 
 
     }
-}
+
+    }
+
+

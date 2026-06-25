@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using System.Security.Claims;
 
-namespace JiraLiteAPI.Service.ActivityLogService
+public interface IActivityLogService
 {
-    public interface IActivityLogService
-    {
-        Task<object> GetAllLogs(int? taskId, int page = 1, int pageSize = 10);
-        Task<object> GetMyLogs(ClaimsPrincipal User, int? taskId, int page = 1, int pageSize = 10);
-        
-    }
+    Task<ServiceResponse<PaginatedResponseDTO<ActivityLogResponseDTO>>> GetAllLogs(int? taskId, int page, int pageSize);
+
+    Task<ServiceResponse<PaginatedResponseDTO<ActivityLogResponseDTO>>> GetMyLogs(ClaimsPrincipal user, int? taskId, int page, int pageSize);
 }

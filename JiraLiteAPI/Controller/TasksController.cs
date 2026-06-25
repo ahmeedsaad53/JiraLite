@@ -19,7 +19,7 @@ namespace JiraLiteAPI.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TasksController : ControllerBase
+    public class TasksController : BaseController
     {
 
         private readonly ITaskService _taskService ;
@@ -40,7 +40,7 @@ namespace JiraLiteAPI.Controller
 
             var result = await _taskService.AddNewTask(taskDTO, User);
 
-            return Ok(result);
+            return HandleResponse(result);
         }
 
 
@@ -50,12 +50,11 @@ namespace JiraLiteAPI.Controller
         [Authorize]
         public async Task<IActionResult> GetAllTasks(int projectId)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+         
 
             var result = await _taskService.GetAllTasks(projectId, User);
 
-            return Ok(result);
+            return HandleResponse(result);
         }
          
         //get task by id
@@ -64,12 +63,11 @@ namespace JiraLiteAPI.Controller
         [Authorize]
         public async Task<IActionResult> GetTasksById(int projectId, int taskId)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+         
 
-            var result = await _taskService.GetTasksById(projectId, taskId, User);
+            var result = await _taskService.GetTaskById(projectId, taskId, User);
 
-            return Ok(result);
+            return HandleResponse(result);
 
         }
 
@@ -83,9 +81,9 @@ namespace JiraLiteAPI.Controller
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var result = await _taskService.EditTaskStauts(projectId, taskId, User);
+            var result = await _taskService.EditTaskStatus(projectId, taskId, User);
 
-            return Ok(result);
+            return HandleResponse(result);
         }
 
 
@@ -99,8 +97,7 @@ namespace JiraLiteAPI.Controller
                 return BadRequest(ModelState);
 
             var result = await _taskService.DeleteTask( taskId, User);
-
-            return Ok(result);
+            return HandleResponse(result);
         }
 
 
@@ -112,12 +109,11 @@ namespace JiraLiteAPI.Controller
         [Authorize]
         public async Task<IActionResult>GetUsersTasks(string userId)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+       
 
             var result = await _taskService.GetUsersTasks(userId, User);
 
-            return Ok(result);
+            return HandleResponse(result);
 
         }
 
@@ -126,15 +122,14 @@ namespace JiraLiteAPI.Controller
 
         //get the all task for Creator
 
-        [HttpGet("TaskCreator/{createdBy}")]
+        [HttpGet("my-created-tasks")] 
         [Authorize]
-        public async Task<IActionResult> GetTaskCreator(string createdBy)
+        public async Task<IActionResult> GetTaskCreator()
         {
-           if(!ModelState.IsValid) 
-                return BadRequest(ModelState);
         
-            var result = await _taskService.GetTaskCreator(createdBy, User);
-             return Ok(result);
+            var result = await _taskService.GetTaskCreator( User);
+
+            return HandleResponse(result);
         }
 
 
@@ -142,11 +137,10 @@ namespace JiraLiteAPI.Controller
         [Authorize]
         public async Task<IActionResult> GetTasks(int? projectId,TasksStatus? status, Priority? priority)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+
 
             var result = await _taskService.GetTasks(projectId, status, priority, User);
-            return Ok(result);
+            return HandleResponse(result);
 
         }
 

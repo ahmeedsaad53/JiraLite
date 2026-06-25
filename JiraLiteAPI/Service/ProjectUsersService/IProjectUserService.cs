@@ -1,15 +1,12 @@
 ﻿using JiraLiteAPI.DTO;
-using Microsoft.AspNetCore.Mvc;
+using JiraLiteAPI.DTO.Common;
 using System.Security.Claims;
 
-namespace JiraLiteAPI.Service.ProjectUsersService
+public interface IProjectUserService
 {
-    public interface IProjectUserService
-    {
-        Task<object> AddUser(string userId,  AddUserToProjectDTO dto);
-        Task<object> DeleteUserFromProject(int projectId, string userId);
-        Task<object> GetAllUser(int projectId, ClaimsPrincipal User);
+    Task<ServiceResponse<string>> AddUser(string userId, AddUserToProjectDTO dto);
 
+    Task<ServiceResponse<string>> DeleteUserFromProject(int projectId, string userId);
 
-    }
+    Task<ServiceResponse<IEnumerable<ProjectUserResponseDTO>>> GetAllUser(int projectId, ClaimsPrincipal user);
 }

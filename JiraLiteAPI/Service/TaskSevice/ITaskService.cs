@@ -1,19 +1,30 @@
 ﻿using JiraLiteAPI.DTO;
+using JiraLiteAPI.DTO.Common;
 using JiraLiteAPI.Enum;
-using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace JiraLiteAPI.Service.TaskSevice
 {
     public interface ITaskService
     {
-        Task<object> AddNewTask(TaskDTO taskDTO, ClaimsPrincipal user);
-        Task<object> GetAllTasks(int projectId, ClaimsPrincipal user);
-        Task<object> GetTasksById(int projectId, int taskId, ClaimsPrincipal user);
-        Task<object> EditTaskStauts(int projectId, int taskId, ClaimsPrincipal user);
-        Task<object> DeleteTask(int taskId, ClaimsPrincipal user);
-        Task<object> GetUsersTasks(string userId, ClaimsPrincipal user);
-        Task<object> GetTaskCreator(string createdBy, ClaimsPrincipal user);
-        Task<object> GetTasks(int? projectId, TasksStatus? status, Priority? priority, ClaimsPrincipal user);
+        Task<ServiceResponse<TaskResponseDTO>> AddNewTask(TaskDTO dto, ClaimsPrincipal user);
+
+        Task<ServiceResponse<IEnumerable<TaskResponseDTO>>> GetAllTasks(int projectId, ClaimsPrincipal user);
+
+        Task<ServiceResponse<TaskResponseDTO>> GetTaskById(int projectId, int taskId, ClaimsPrincipal user);
+
+        Task<ServiceResponse<string>> EditTaskStatus(int projectId, int taskId, ClaimsPrincipal user);
+
+        Task<ServiceResponse<string>> DeleteTask(int taskId, ClaimsPrincipal user);
+
+        Task<ServiceResponse<IEnumerable<TaskResponseDTO>>> GetUsersTasks(string userId, ClaimsPrincipal user);
+
+        Task<ServiceResponse<IEnumerable<TaskResponseDTO>>> GetTaskCreator( ClaimsPrincipal user);
+
+        Task<ServiceResponse<IEnumerable<TaskResponseDTO>>> GetTasks(
+            int? projectId,
+            TasksStatus? status,
+            Priority? priority,
+            ClaimsPrincipal user);
     }
 }

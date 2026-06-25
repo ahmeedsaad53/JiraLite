@@ -3,7 +3,6 @@ using JiraLiteAPI.Data.Context;
 using JiraLiteAPI.Data.Models;
 using JiraLiteAPI.DTO;
 using JiraLiteAPI.Enum;
-using JiraLiteAPI.Service.DashBoardService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
