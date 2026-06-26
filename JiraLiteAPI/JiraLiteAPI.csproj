@@ -8,9 +8,13 @@
 
   <ItemGroup>
     <Compile Remove="Middlewares\**" />
+    <Compile Remove="wwwroot\uploads\**" />
     <Content Remove="Middlewares\**" />
+    <Content Remove="wwwroot\uploads\**" />
     <EmbeddedResource Remove="Middlewares\**" />
+    <EmbeddedResource Remove="wwwroot\uploads\**" />
     <None Remove="Middlewares\**" />
+    <None Remove="wwwroot\uploads\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\uploads\" />
+    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 
